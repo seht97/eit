@@ -1,1 +1,1 @@
-Repo for EiT
+Repo for Experts in Dream Team
