@@ -1,5 +1,5 @@
-#ifndef OFFB_NODE_H
-#define OFFB_NODE_H
+#ifndef OFFBOARD_NODE_H
+#define OFFBOARD_NODE_H
 
 #include <iostream>
 #include <ros/ros.h>
@@ -26,9 +26,9 @@ private:
     void _poseCb(const geometry_msgs::PoseStamped::ConstPtr &msg) {_currentPose = *msg;}
 
     // ROS node
-    ros::NodeHandle _nh;
-    ros::Subscriber _stateSub, _posSub;
-    ros::Publisher _localPosPub;
+    ros::NodeHandle &_nh;
+    const ros::Subscriber _stateSub, _posSub;
+    const ros::Publisher _localPosPub;
 
     // Messages
     ros::ServiceClient _armingClient, _setModeClient;
