@@ -1,19 +1,28 @@
 import pcl
+import numpy as np
+
+# Drone size
+DRONE_WIDTH = 0.7
+DRONE_HEIGHT = 0.65
 
 class LandingDetector:
     def __init__(self):
         # Initialize
-        pc = pcl.load('/home/magnus/EiT/pointcloud_pcd_files/210.576000000.pcd')
+        self.pc = pcl.load('/home/magnus/EiT/pointcloud_pcd_files/210.576000000.pcd')
+        
+    def detect(self):
+        # Run detection
+        fil = self.pc.make_passthrough_filter()
+        fil.set_filter_field_name("x")
+        fil.set_filter_limits(-DRONE_WIDTH/2, DRONE_WIDTH/2)
+        cloud_filtered = fil.filter()
+        fil = cloud_filtered.make_passthrough_filter()
+        fil.set_filter_field_name("y")
+        fil.set_filter_limits(-DRONE_HEIGHT/2, DRONE_HEIGHT/2)
+        cloud_filtered = fil.filter()
+        pcl.save(cloud_filtered, '/home/magnus/EiT/filtered_pcd.pcd')
 
-        #print(pc.size)
-
-        #fil = pc.make_passthrough_filter()
-        #fil.set_filter_field_name("z")
-        #fil.set_filter_limits(0, 2.5)
-        #cloud_filtered = fil.filter()
-        #print(cloud_filtered.size)
-        #pcl.save(cloud_filtered, '/home/magnus/EiT/filtered_pcd.pcd')
-        seg = pc.make_segmenter_normals(ksearch=50)
+        seg = cloud_filtered.make_segmenter_normals(ksearch=50)
         seg.set_optimize_coefficients(True)
         seg.set_model_type(pcl.SACMODEL_NORMAL_PLANE)
         seg.set_normal_distance_weight(0.1)
@@ -22,15 +31,14 @@ class LandingDetector:
         seg.set_distance_threshold(0.03)
         indices, model = seg.segment()
 
-        print(model)
-
-        cloud_plane = pc.extract(indices, negative=False)
-        print(cloud_plane.size)
+        cloud_plane = cloud_filtered.extract(indices, negative=False)
         pcl.save(cloud_plane, '/home/magnus/EiT/segmented_pcd.pcd')
-        
-    def detect(self):
-        # Run detection
-        pass
+        print(cloud_plane.size)
+        print(cloud_filtered.size)
+        if cloud_plane.size == cloud_filtered.size:
+            print("True")
+        else:
+            print("False")
 
 def main():
     ld = LandingDetector()
