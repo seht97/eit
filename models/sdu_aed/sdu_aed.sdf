@@ -776,11 +776,11 @@
         <mass>0.095</mass>
         <inertia>
           <ixx>4.15e-6</ixx>
-        <ixy>0</ixy>
-        <ixz>0</ixz>
-        <iyy>2.407e-6</iyy>
-        <iyz>0</iyz>
-        <izz>2.407e-6</izz>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>2.407e-6</iyy>
+          <iyz>0</iyz>
+          <izz>2.407e-6</izz>
         </inertia>
       </inertial>
       <collision name='collision'>
