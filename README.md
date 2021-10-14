@@ -1,5 +1,11 @@
 # Repo for Experts in Dream Team
 
+## Install dependencies
+
+```console
+sudo apt-get install ros-$ROS_DISTRO-realsense2-camera
+```
+
 ## Instructions for simulating AED UAV in Gazebo
 1. Ensure that ROS, PX4 and eit_playground have been installed
 2. Run `source ~/eit_ws/src/eit/setup_posix.bash`
