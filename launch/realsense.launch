@@ -1,28 +1,35 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="width"  value="640"/>
-  <arg name="height" value="480"/>
-  <arg name="fps"    value="30"/>
+  <arg name="depth_width"       type="int"  default="1024"/>
+  <arg name="depth_height"      type="int"  default="768"/>
+  <arg name="depth_fps"         type="int"  default="30"/>
+  <arg name="color_width"       type="int"  default="1920"/>
+  <arg name="color_height"      type="int"  default="1080"/>
+  <arg name="color_fps"         type="int"  default="30"/>
+  <arg name="enable_pointcloud" type="bool" default="false"/>
 
-  <remap from="/camera/depth/color/points" to="/pointcloud"/>
+  <remap from="/camera/depth/color/points"   to="/pcl"/>
+  <remap from="/camera/depth/camera_info"    to="/depth/info"/>
+  <remap from="/camera/depth/image_rect_raw" to="/depth/data"/>
+  <remap from="/camera/color/camera_info"    to="/rgb/info"/>
+  <remap from="/camera/color/image_raw"      to="/rgb/data"/>
   
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-    <arg name="device_type"       value="l515"/>
-    <arg name="depth_width"       value="$(arg width)"/>
-    <arg name="depth_height"      value="$(arg height)"/>
-    <arg name="depth_fps"         value="$(arg fps)"/>
-    <arg name="color_width"       value="$(arg width)"/>
-    <arg name="color_height"      value="$(arg height)"/>
-    <arg name="color_fps"         value="$(arg fps)"/>
-    <arg name="enable_depth"      value="true"/>
-    <arg name="enable_color"      value="true"/>
-    <arg name="enable_infra1"     value="false"/>
-    <arg name="enable_infra2"     value="false"/>
-    <arg name="enable_fisheye"    value="false"/>
-    <arg name="enable_gyro"       value="false"/>
-    <arg name="enable_accel"      value="false"/>
-    <arg name="enable_pointcloud" value="true"/>
-    <arg name="enable_sync"       value="true"/>
-    <arg name="ordered_pc"        value="true"/>
+    <arg name="device_type"       type="str"  value="l515"/>
+    <arg name="depth_width"       type="int"  value="$(arg depth_width)"/>
+    <arg name="depth_height"      type="int"  value="$(arg depth_height)"/>
+    <arg name="depth_fps"         type="int"  value="$(arg depth_fps)"/>
+    <arg name="color_width"       type="int"  value="$(arg color_width)"/>
+    <arg name="color_height"      type="int"  value="$(arg color_height)"/>
+    <arg name="color_fps"         type="int"  value="$(arg color_fps)"/>
+    <arg name="enable_depth"      type="bool" value="true"/>
+    <arg name="enable_color"      type="bool" value="true"/>
+    <arg name="enable_infra1"     type="bool" value="false"/>
+    <arg name="enable_infra2"     type="bool" value="false"/>
+    <arg name="enable_fisheye"    type="bool" value="false"/>
+    <arg name="enable_gyro"       type="bool" value="false"/>
+    <arg name="enable_accel"      type="bool" value="false"/>
+    <arg name="enable_pointcloud" type="bool" value="$(arg enable_pointcloud)"/>
+    <arg name="ordered_pc"        type="bool" value="true"/>
   </include>
 </launch>

@@ -10,8 +10,6 @@ int main(int argc, char **argv) {
 
     VisualNode vis_node(nh);
 
-
-
     OffboardNode ob_node(nh);
     ob_node.run();
 
