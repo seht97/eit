@@ -1,0 +1,12 @@
+<launch>
+    <arg name="pointcloud_topic"    default="/camera/depth/points"/>
+    <arg name="drone_width"         default="2.0"/>
+    <arg name="drone_height"        default="2.0"/>
+
+    <!-- Launch Landing Detector -->
+    <node name="landing_detector" pkg="eit" type="landing_detector.py" output="screen" >
+        <param name="pointcloud_topic"  value="$(arg pointcloud_topic)"/>
+        <param name="drone_width"       value="$(arg drone_width)"/>
+        <param name="drone_height"       value="$(arg drone_height)"/>
+    </node>
+</launch>
