@@ -109,9 +109,9 @@ class Drone():
         while not self.state.mode == "OFFBOARD": #FJERN DETTE I REAL LIFE
             self.rate.sleep()
             self.target_pos_pub.publish(self.takeOffPosition)
-            if not self.state.mode == "OFFBOARD":
-                self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
-                print("OFFBOARD enable")
+            #if not self.state.mode == "OFFBOARD":
+                #self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
+                #print("OFFBOARD enable")
 
         print("Rotorcraft arming")
         while not self.state.armed:
