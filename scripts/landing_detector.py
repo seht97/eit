@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 import sys
 import rospy
+from ros_numpy import numpify
 from ros_numpy.point_cloud2 import pointcloud2_to_xyz_array, array_to_pointcloud2, pointcloud2_to_array, get_xyz_points
-
 from sensor_msgs.point_cloud2 import PointCloud2
+from sensor_msgs.msg import Image
+import cv2
 
 import numpy as np
 import pcl
@@ -31,12 +33,26 @@ class LandingDetector:
     def _init_subscribers(self):
         # Setup subscribers
         pc_topic = rospy.get_param('~pointcloud_topic','')
+        rgb_topic = rospy.get_param('~rgb_topic','')
         if not pc_topic:
             rospy.logerr('Parameter \'pointcloud_topic\' is not provided.')
             sys.exit(-1)
-        rospy.Subscriber(pc_topic, PointCloud2, self._callback, queue_size=1)
+        if not rgb_topic:
+            rospy.logerr('Parameter \'rgb_topic\' is not provided.')
+            sys.exit(-1)
+        
+        rospy.Subscriber(pc_topic, PointCloud2, self._pc_callback, queue_size=1)
+        rospy.Subscriber(rgb_topic, Image, self._rgb_callback, queue_size=1)
 
-    def _callback(self, msg):
+    def _rgb_callback(self, msg):
+        # Save rgb image
+        self.last_rgb_img = numpify(msg)
+        cv2.imshow('RGB Image', self.last_rgb_img)
+        
+        cv2.waitKey(3)
+        #print(self.last_rgb_img.size)
+
+    def _pc_callback(self, msg):
         # Callback for point cloud topic
         # Transform PointCloud2 to xyz-numpy array shape (N,3)
         pc = pointcloud2_to_xyz_array(msg).astype('float32')
@@ -59,6 +75,7 @@ class LandingDetector:
         fil.set_filter_field_name("y")
         fil.set_filter_limits(-self.DRONE_HEIGHT/2, self.DRONE_HEIGHT/2)
         cloud_filtered = fil.filter()
+        print(cloud_filtered.size)
         # Publish filtered point cloud
         #self.filtered_pc_pub.publish(array_to_pointcloud2(np.asarray(cloud_filtered)))
 
