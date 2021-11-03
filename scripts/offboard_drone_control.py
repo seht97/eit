@@ -15,6 +15,7 @@ from sensor_msgs.msg import NavSatFix
 class Drone():
     def __init__(self):
         self.hz = 25
+        self.dist_to_target_thresh = 2
         self.rate = rospy.Rate(self.hz)
         self.state = State()
         self.receivedPosition = False
@@ -70,7 +71,7 @@ class Drone():
 
     def target_cb(self, data):
         self.targetGPS = data
-        print("longitude %f" % self.targetGPS.longitude)
+        #print("longitude %f" % self.targetGPS.longitude)
         self.receivedGPS = True
 
 
@@ -87,8 +88,8 @@ class Drone():
 
         
         self.takeOffPosition = PoseStamped()
-        self.takeOffPosition.pose.position.x = 0
-        self.takeOffPosition.pose.position.y= 0
+        self.takeOffPosition.pose.position.x = self.current_position.pose.position.x
+        self.takeOffPosition.pose.position.y= self.current_position.pose.position.y
         self.takeOffPosition.pose.position.z = 0
 
         # send a few takeoff commands before starting
@@ -103,24 +104,26 @@ class Drone():
 
         print("Target position received")
 
-        #print("Waiting for change mode to offboard & arming rotorcraft...")
+        print("Waiting for change mode to offboard")
         #print("Enabling OFFBOARD")
         while not self.state.mode == "OFFBOARD": #FJERN DETTE I REAL LIFE
             self.rate.sleep()
-        #    if not self.state.mode == "OFFBOARD":
-        #        self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
-        #        print("OFFBOARD enable")
+            self.target_pos_pub.publish(self.takeOffPosition)
+            if not self.state.mode == "OFFBOARD":
+                self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
+                print("OFFBOARD enable")
 
         print("Rotorcraft arming")
         while not self.state.armed:
+            self.target_pos_pub.publish(self.takeOffPosition)
             if not self.state.armed:
                 self.arming_client(True)
 
             # reached takeoff position
         header = Header()
-        dist_to_takeoff_pos = 2
+        dist_to_takeoff_pos = 99999
         self.takeOffPosition.pose.position.z = 30
-        while(0.5 < dist_to_takeoff_pos):
+        while(self.dist_to_target_thresh < dist_to_takeoff_pos):
             x = self.takeOffPosition.pose.position.x - self.current_position.pose.position.x
             y = self.takeOffPosition.pose.position.y - self.current_position.pose.position.y
             z = self.takeOffPosition.pose.position.z - self.current_position.pose.position.z
@@ -167,7 +170,6 @@ class Drone():
 
     def flyRoute(self):
         print("Flying Route")
-        waypoint = 0
         header = Header()
         while (self.state.armed):
             if self.valid_gps(self.set_target()):
@@ -178,9 +180,7 @@ class Drone():
             targetPosition.header = header
             self.target_pos_pub.publish(targetPosition)
             self.rate.sleep()
-            #print(self.distanceToTarget(targetPosition))
-            #print(targetPosition)
-            if(self.distanceToTarget(targetPosition) < 0.20):
+            if(self.distanceToTarget(targetPosition) < self.dist_to_target_thresh):
                 break
 
 
