@@ -66,7 +66,7 @@ class Drone():
         self.GPS_pos_sub = rospy.Subscriber("/mavros/global_position/raw/fix", NavSatFix, self.GPS_pos_cb)
         self.MAVROS_altitude_sub = rospy.Subscriber("/mavros/altitude", Altitude, self.mavros_altitude_cb)
 
-        self.tar_pos_sub = rospy.Subscriber("/target", GeoPoseStamped, self.GPS_target_cb) 
+        self.tar_pos_sub = rospy.Subscriber("/gui/target", GeoPoseStamped, self.GPS_target_cb) 
 
         ## Publishers:
         #self.target_pos_pub = rospy.Publisher("/mavros/setpoint_position/local", PoseStamped, queue_size=1)
@@ -107,6 +107,13 @@ class Drone():
         #if(not self.receivedPosition):
         #    self.home_position = position
         #self.receivedPosition = True
+    def publishGPS(self):
+        header = Header()
+        self.rate.sleep()
+        header.stamp = rospy.Time.now()
+        self.GPS_To_Publish.header = header
+        self.target_pos_pub.publish(self.GPS_To_Publish) # Publishing GPS target at homeposition to keep in offboard mode 
+        self.rate.sleep()
 
     def setup(self):
         print("Waiting for FCU connection...")
@@ -121,17 +128,13 @@ class Drone():
 
 
 
-        header = Header()
+       
         while not self.received_GPS_target:
             self.GPS_To_Publish.pose.position.latitude = self.home_GPS_position.latitude   #
             self.GPS_To_Publish.pose.position.longitude = self.home_GPS_position.longitude
             self.GPS_To_Publish.pose.position.altitude = self.home_GPS_position.altitude - 1000 # Stay at the home position 
 
-            self.rate.sleep()
-            header.stamp = rospy.Time.now()
-            self.GPS_To_Publish.header = header
-            self.target_pos_pub.publish(self.GPS_To_Publish) # Publishing GPS target at homeposition to keep in offboard mode 
-            self.rate.sleep()
+            self.publishGPS()
         print("GPS target received")
       
 
@@ -144,14 +147,14 @@ class Drone():
 
         print("Waiting for change mode to offboard rotorcraft...")
         while not self.state.mode == "OFFBOARD":
-            self.rate.sleep()
+            self.publishGPS()
             if not self.state.mode == "OFFBOARD" and self.simulation:
                  self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
                  rospy.loginfo("OFFBOARD enable")
         
         print("Waiting for change mode to arming rotorcraft...")
         while not self.state.armed: 
-            self.rate.sleep()
+            self.publishGPS()
             if not self.state.armed:
                 self.arming_client(True)
                 rospy.loginfo("Rotorcraft armed")
