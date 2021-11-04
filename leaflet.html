@@ -11,10 +11,13 @@
     <script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
 
     <style>
-      html, body {
-        height: 100%;
+      * {
         padding: 0;
         margin: 0;
+      }
+
+      html, body {
+        height: 100%;
       }
 
       .table {
@@ -47,7 +50,6 @@
         text-align: center;
         display: table;
         width: 100%;
-        box-shadow: 5px 5px 15px 5px #000000;
         background-image: linear-gradient(red, yellow);
       }
 
@@ -60,6 +62,10 @@
       #interface_wrapper button {
         width: 100%;
       }
+
+      #rgbData {
+        max-width: 100%;
+      }
     </style>
   </head>
   <body>
@@ -70,6 +76,7 @@
           <div id="interface_wrapper">
             <h1>Prety uI</h1>
             <div id="boxDrone">
+              <h2>Drone State</h2>
               <p id="droneLatLon">latlon</p>
               <p id="droneState">state</p>
             </div>
@@ -83,6 +90,7 @@
               <p id="clock">clerk</p>
             </div>
           </div>
+          <img id="rgbData" />
         </div>
       </div>
     </div>
@@ -150,24 +158,50 @@
       var clockTopic = new ROSLIB.Topic({
         ros: ros,
         name: '/clock',
-        messageType: 'rosgraph_msgs/Clock'
+        messageType: 'rosgraph_msgs/Clock',
+        throttle_rate: 1000
       });
       clockTopic.subscribe(function(msg){
-        document.getElementById('clock').innerHTML = msg.clock.secs;
         console.log('Received message on ' + clockTopic.name + ': ' + msg.clock);
+        document.getElementById('clock').innerHTML = msg.clock.secs;
       });
 
       var globalposTopic = new ROSLIB.Topic({
         ros: ros,
         name: '/mavros/global_position/global',
-        messageType: 'sensor_msgs/NavSatFix'
+        messageType: 'sensor_msgs/NavSatFix',
+        throttle_rate: 1000
       });
       globalposTopic.subscribe(function(msg){
+        console.log('Received message on ' + globalposTopic.name + ': ' + msg.altitude);
         var lat = msg.latitude;
         var lon = msg.longitude
         document.getElementById('droneLatLon').innerHTML = lat.toString() + ", " + lon.toString();
         var latlon = new L.LatLng(lat, lon);
         drone.setLatLng(latlon);
+      });
+
+      var stateTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/mavros/state',
+        messageType: 'mavros_msgs/State',
+        throttle_rate: 1000
+      });
+      stateTopic.subscribe(function(msg){
+        console.log('Received message on ' + stateTopic.name + ': ' + msg.mode);
+        document.getElementById('droneState').innerHTML = msg.mode;
+      });
+
+      var imgTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/camera/rgb/image_raw/compressed',
+        messageType: 'sensor_msgs/CompressedImage',
+        throttle_rate: 200
+      });
+      imgTopic.subscribe(function(msg){
+        var data = msg.data;
+        console.log('Received message on ' + imgTopic.name + ': ' + data);
+        document.getElementById('rgbData').setAttribute('src', "data:image/jpeg;base64," + data);
       });
 
       // Publishers
