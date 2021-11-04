@@ -83,7 +83,7 @@
             <div id="boxTarget">
               <h2>Target</h2>
               <p id="targetLatLon">nuthin'</p>
-              <button id="targetButton">go wroom</button>
+              <button id="targetButton" disabled="true">go wroom</button>
             </div>
             <div>
               <p>Is_alive:</p>
@@ -143,8 +143,8 @@
             .setContent(tarLat.toString() + ", " + tarLon.toString())
             .openOn(map);
         
-        document.getElementById("targetLatLon").innerHTML = tarLat.toString() + ", " + tarLon.toString();
-        // document.getElementById("targetButton").disabled = false; 
+        document.getElementById("targetLatLon").innerHTML = tarLat.toString().slice(0, 7) + ", " + tarLon.toString().slice(0, 7);
+        document.getElementById("targetButton").disabled = false; 
       }
       map.on('click', onMapClick);
 
@@ -172,11 +172,11 @@
         messageType: 'sensor_msgs/NavSatFix',
         throttle_rate: 1000
       });
-      globalposTopic.subscribe(function(msg){
+      globalposTopic.subscribe(function(msg) {
         console.log('Received message on ' + globalposTopic.name + ': ' + msg.altitude);
         var lat = msg.latitude;
-        var lon = msg.longitude
-        document.getElementById('droneLatLon').innerHTML = lat.toString() + ", " + lon.toString();
+        var lon = msg.longitude;
+        document.getElementById('droneLatLon').innerHTML = lat.toString().slice(0, 7) + ", " + lon.toString().slice(0, 7);
         var latlon = new L.LatLng(lat, lon);
         drone.setLatLng(latlon);
       });
@@ -187,7 +187,7 @@
         messageType: 'mavros_msgs/State',
         throttle_rate: 1000
       });
-      stateTopic.subscribe(function(msg){
+      stateTopic.subscribe(function(msg) {
         console.log('Received message on ' + stateTopic.name + ': ' + msg.mode);
         document.getElementById('droneState').innerHTML = msg.mode;
       });
