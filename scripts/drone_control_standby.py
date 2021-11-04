@@ -66,7 +66,7 @@ class Drone():
         self.GPS_pos_sub = rospy.Subscriber("/mavros/global_position/raw/fix", NavSatFix, self.GPS_pos_cb)
         self.MAVROS_altitude_sub = rospy.Subscriber("/mavros/altitude", Altitude, self.mavros_altitude_cb)
 
-        self.tar_pos_sub = rospy.Subscriber("/target", GeoPoseStamped, self.GPS_target_cb) 
+        self.tar_pos_sub = rospy.Subscriber("/gui/target", GeoPoseStamped, self.GPS_target_cb) 
 
         ## Publishers:
         #self.target_pos_pub = rospy.Publisher("/mavros/setpoint_position/local", PoseStamped, queue_size=1)

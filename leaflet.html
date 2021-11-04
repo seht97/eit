@@ -14,6 +14,7 @@
       * {
         padding: 0;
         margin: 0;
+        font-family: "Comic Sans MS", "Comic Sans", cursive;
       }
 
       html, body {
@@ -98,19 +99,6 @@
     <script type="text/javascript" type="text/javascript">
       // initialize Leaflet
       var map = L.map('map').setView({lon: 10.324096, lat: 55.471991}, 18);
-
-			// add the OpenStreetMap tiles
-      //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      //  maxZoom: 19,
-      //  attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-      //}).addTo(map);
-
-			//L.tileLayer('https://{s}.google.com/vt/lyrs=m@221097413,traffic&x={x}&y={y}&z={z}', {
-      //  maxZoom: 20,
-      //  minZoom: 2,
-      //  subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-      //}).addTo(map);
-
 			L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
         maxZoom: 20,
         subdomains:['mt0','mt1','mt2','mt3']
@@ -120,7 +108,7 @@
       L.control.scale({imperial: false, metric: true}).addTo(map);
 
       // Circle
-			var circle = L.circle([55.471994, 10.32275], {
+			var circ = L.circle([55.471994, 10.32275], {
 			    color: 'red',
 			    fillColor: '#f03',
 			    fillOpacity: 0.5,
@@ -130,18 +118,14 @@
       // Marker
       var drone = L.marker({lat: 55.471994, lon: 10.32290}).bindPopup('Droneboi').addTo(map);
 
-      // Create popup that moves when clicking map
-			var popup = L.popup();
+      // On map click
       var tarLat;
       var tarLon;
       function onMapClick(e) {
         tarLat = e.latlng.lat;
         tarLon = e.latlng.lng;
 
-        popup
-            .setLatLng(e.latlng)
-            .setContent(tarLat.toString() + ", " + tarLon.toString())
-            .openOn(map);
+        circ.setLatLng(e.latlng);
         
         document.getElementById("targetLatLon").innerHTML = tarLat.toString().slice(0, 7) + ", " + tarLon.toString().slice(0, 7);
         document.getElementById("targetButton").disabled = false; 
@@ -170,15 +154,16 @@
         ros: ros,
         name: '/mavros/global_position/global',
         messageType: 'sensor_msgs/NavSatFix',
-        throttle_rate: 1000
+        throttle_rate: 200
       });
       globalposTopic.subscribe(function(msg) {
-        console.log('Received message on ' + globalposTopic.name + ': ' + msg.altitude);
+        console.log('Received message on ' + globalposTopic.name);
         var lat = msg.latitude;
         var lon = msg.longitude;
         document.getElementById('droneLatLon').innerHTML = lat.toString().slice(0, 7) + ", " + lon.toString().slice(0, 7);
         var latlon = new L.LatLng(lat, lon);
         drone.setLatLng(latlon);
+        map.setView({lon: lon, lat: lat})
       });
 
       var stateTopic = new ROSLIB.Topic({
@@ -188,7 +173,7 @@
         throttle_rate: 1000
       });
       stateTopic.subscribe(function(msg) {
-        console.log('Received message on ' + stateTopic.name + ': ' + msg.mode);
+        console.log('Received message on ' + stateTopic.name);
         document.getElementById('droneState').innerHTML = msg.mode;
       });
 
@@ -200,7 +185,7 @@
       });
       imgTopic.subscribe(function(msg){
         var data = msg.data;
-        console.log('Received message on ' + imgTopic.name + ': ' + data);
+        console.log('Received message on ' + imgTopic.name);
         document.getElementById('rgbData').setAttribute('src', "data:image/jpeg;base64," + data);
       });
 
