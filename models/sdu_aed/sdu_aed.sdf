@@ -81,6 +81,10 @@
       </axis>
     </joint>
 
+
+
+
+      
     <!-- Rotor 0 (CW) -->
     <link name='rotor_0'>
       <pose>0.0 -0.37 0.170 0 -0 0</pose>
@@ -830,11 +834,11 @@
           <updateRate>30</updateRate>
           <pointCloudCutoff>0.25</pointCloudCutoff>
           <pointCloudCutoffMax>9</pointCloudCutoffMax>
-          <imageTopicName>rgb/image_raw</imageTopicName>
-          <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
-          <depthImageTopicName>depth/image_raw</depthImageTopicName>
+          <imageTopicName>color/image_raw</imageTopicName>
+          <cameraInfoTopicName>color/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>depth/image_rect_raw</depthImageTopicName>
           <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
-          <pointCloudTopicName>depth/points</pointCloudTopicName>
+          <pointCloudTopicName>depth/color/points</pointCloudTopicName>
           <frameName>camera_link</frameName>
           <distortion_k1>0.0</distortion_k1>
           <distortion_k2>0.0</distortion_k2>
