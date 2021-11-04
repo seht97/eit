@@ -64,7 +64,7 @@
       }
 
       #rgbData {
-        max-width: 100%;
+        width: 100%;
       }
     </style>
   </head>
@@ -83,7 +83,7 @@
             <div id="boxTarget">
               <h2>Target</h2>
               <p id="targetLatLon">nuthin'</p>
-              <button id="targetButton" disabled="true">go wroom</button>
+              <button id="targetButton">go wroom</button>
             </div>
             <div>
               <p>Is_alive:</p>
@@ -144,7 +144,7 @@
             .openOn(map);
         
         document.getElementById("targetLatLon").innerHTML = tarLat.toString() + ", " + tarLon.toString();
-        document.getElementById("targetButton").disabled = false; 
+        // document.getElementById("targetButton").disabled = false; 
       }
       map.on('click', onMapClick);
 
@@ -194,7 +194,7 @@
 
       var imgTopic = new ROSLIB.Topic({
         ros: ros,
-        name: '/camera/rgb/image_raw/compressed',
+        name: '/rgb/data/compressed',
         messageType: 'sensor_msgs/CompressedImage',
         throttle_rate: 200
       });
@@ -212,14 +212,14 @@
       });
 
       // Send target coordinates
-      document.getElementById("targetLatLon").onclick = function(){
+      document.getElementById("targetButton").onclick = function(){
         console.log(tarLat, tarLon);
         var msg = new ROSLIB.Message({
           header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
           pose: {
             position: {
-              tarLatitude: tarLat,
-              tarLongitude: tarLon,
+              latitude: tarLat,
+              longitude: tarLon,
               altitude: 500
             },
             orientation: {
