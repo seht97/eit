@@ -69,10 +69,14 @@
         <div class="cell">
           <div id="interface_wrapper">
             <h1>Prety uI</h1>
-            <div id="boxCoords">
-              <h2>Coordinates</h2>
-              <p id="coordsLatLon">nuthin'</p>
-              <button id="coordsButton" disabled="true">go wroom</button>
+            <div id="boxDrone">
+              <p id="droneLatLon">latlon</p>
+              <p id="droneState">state</p>
+            </div>
+            <div id="boxTarget">
+              <h2>Target</h2>
+              <p id="targetLatLon">nuthin'</p>
+              <button id="targetButton" disabled="true">go wroom</button>
             </div>
             <div>
               <p>Is_alive:</p>
@@ -116,30 +120,28 @@
 			}).addTo(map);
 
       // Marker
-      L.marker({lat: 55.471994, lon: 10.32290}).bindPopup('The center of the world').addTo(map);
+      var drone = L.marker({lat: 55.471994, lon: 10.32290}).bindPopup('Droneboi').addTo(map);
 
       // Create popup that moves when clicking map
 			var popup = L.popup();
-      var lat;
-      var lon;
+      var tarLat;
+      var tarLon;
       function onMapClick(e) {
-        lat = e.latlng.lat;
-        lon = e.latlng.lng;
+        tarLat = e.latlng.lat;
+        tarLon = e.latlng.lng;
 
         popup
             .setLatLng(e.latlng)
-            .setContent(lat.toString() + ", " + lon.toString())
+            .setContent(tarLat.toString() + ", " + tarLon.toString())
             .openOn(map);
         
-        document.getElementById("coordsLatLon").innerHTML = lat.toString() + ", " + lon.toString();
-        document.getElementById("coordsButton").disabled = false; 
+        document.getElementById("targetLatLon").innerHTML = tarLat.toString() + ", " + tarLon.toString();
+        document.getElementById("targetButton").disabled = false; 
       }
       map.on('click', onMapClick);
 
       // ROS stuff
-      var ros = new ROSLIB.Ros({
-        url: 'ws://localhost:8080'
-      });
+      var ros = new ROSLIB.Ros({url: 'ws://localhost:8080'});
       ros.on('connection', function(){console.log('Connected to websocket server.');});
       ros.on('error', function(error){console.log('Error connecting to websocket server: ', error);});
       ros.on('close', function(){console.log('Connection to websocket server closed.');});
@@ -148,11 +150,24 @@
       var clockTopic = new ROSLIB.Topic({
         ros: ros,
         name: '/clock',
-        messageType: 'std_msgs/Time'
-      })
+        messageType: 'rosgraph_msgs/Clock'
+      });
       clockTopic.subscribe(function(msg){
-        document.getElementById('clock').innerHTML = msg.data.secs;
-        console.log('Received message on ' + clockTopic.name + ': ' + msg.data);
+        document.getElementById('clock').innerHTML = msg.clock.secs;
+        console.log('Received message on ' + clockTopic.name + ': ' + msg.clock);
+      });
+
+      var globalposTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/mavros/global_position/global',
+        messageType: 'sensor_msgs/NavSatFix'
+      });
+      globalposTopic.subscribe(function(msg){
+        var lat = msg.latitude;
+        var lon = msg.longitude
+        document.getElementById('droneLatLon').innerHTML = lat.toString() + ", " + lon.toString();
+        var latlon = new L.LatLng(lat, lon);
+        drone.setLatLng(latlon);
       });
 
       // Publishers
@@ -163,14 +178,14 @@
       });
 
       // Send target coordinates
-      document.getElementById("coordsButton").onclick = function(){
-        console.log(lat, lon);
+      document.getElementById("targetLatLon").onclick = function(){
+        console.log(tarLat, tarLon);
         var msg = new ROSLIB.Message({
           header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
           pose: {
             position: {
-              latitude: lat,
-              longitude: lon,
+              tarLatitude: tarLat,
+              tarLongitude: tarLon,
               altitude: 500
             },
             orientation: {
