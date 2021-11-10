@@ -67,6 +67,18 @@
         <uri>model://cylinder</uri>
       </include>
     </model>
+    <model name="cylinder6">
+      <pose>3.8 26.3 0.5 0 -0 0</pose>
+      <include>
+        <uri>model://cylinder</uri>
+      </include>
+    </model>
+    <model name="cylinder7">
+      <pose>3.14 23.5 0.5 0 -0 0</pose>
+      <include>
+        <uri>model://cylinder</uri>
+      </include>
+    </model>
 
     <!-- Fix the light conditions -->
     <scene>
