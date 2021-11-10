@@ -13,7 +13,7 @@
     <!-- vehicle model and world -->
     <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="sdu_drone"/>
-    <arg name="env" default="empty"/>
+    <arg name="env" default="hca_airport"/>
     <arg name="world" default="$(find eit_playground)/worlds/$(arg env).world"/>
     <arg name="sdf" default="$(find eit_playground)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
     <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />

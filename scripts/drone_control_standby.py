@@ -27,7 +27,7 @@ class Drone():
         self.received_GPS_position = False
         self.received_MAVROS_altitude = False
 
-        self.simulation = True # ------------------------------------- IMPORTANT to set prior flight -----------------------------------
+        self.simulation = False # ------------------------------------- IMPORTANT to set prior flight -----------------------------------
         
         
         # self.home_position = PoseStamped()
@@ -104,16 +104,10 @@ class Drone():
         self.received_GPS_target = True
         
         rospy.loginfo("GPS target: Long lat %f og %f" % (data.pose.position.longitude, data.pose.position.latitude))
+        self.GPS_target.pose.position.altitude = self.current_MAVROS_altitude.amsl
         #if(not self.receivedPosition):
         #    self.home_position = position
         #self.receivedPosition = True
-    def publishGPS(self):
-        header = Header()
-        self.rate.sleep()
-        header.stamp = rospy.Time.now()
-        self.GPS_To_Publish.header = header
-        self.target_pos_pub.publish(self.GPS_To_Publish) # Publishing GPS target at homeposition to keep in offboard mode 
-        self.rate.sleep()
 
     def setup(self):
         print("Waiting for FCU connection...")
@@ -128,13 +122,17 @@ class Drone():
 
 
 
-       
+        header = Header()
         while not self.received_GPS_target:
             self.GPS_To_Publish.pose.position.latitude = self.home_GPS_position.latitude   #
             self.GPS_To_Publish.pose.position.longitude = self.home_GPS_position.longitude
             self.GPS_To_Publish.pose.position.altitude = self.home_GPS_position.altitude - 1000 # Stay at the home position 
 
-            self.publishGPS()
+            self.rate.sleep()
+            header.stamp = rospy.Time.now()
+            self.GPS_To_Publish.header = header
+            self.target_pos_pub.publish(self.GPS_To_Publish) # Publishing GPS target at homeposition to keep in offboard mode 
+            self.rate.sleep()
         print("GPS target received")
       
 
@@ -147,14 +145,14 @@ class Drone():
 
         print("Waiting for change mode to offboard rotorcraft...")
         while not self.state.mode == "OFFBOARD":
-            self.publishGPS()
+            self.rate.sleep()
             if not self.state.mode == "OFFBOARD" and self.simulation:
                  self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
                  rospy.loginfo("OFFBOARD enable")
         
         print("Waiting for change mode to arming rotorcraft...")
         while not self.state.armed: 
-            self.publishGPS()
+            self.rate.sleep()
             if not self.state.armed:
                 self.arming_client(True)
                 rospy.loginfo("Rotorcraft armed")
@@ -196,8 +194,13 @@ class Drone():
                 
 
     def flyRoute(self):
-        rospy.loginfo("Flying Route")
         header = Header()
+        while self.geoFencing():
+            self.rate.sleep()
+            header.stamp = rospy.Time.now()
+            self.target_pos_pub.publish(self.GPS_To_Publish)
+            print("Distance to target " + str(self.distanceToTarget(self.GPS_target)) ) 
+        rospy.loginfo("Flying Route")
 
         self.geoFencing()
         self.GPS_To_Publish.pose.position.latitude = self.home_GPS_position.latitude   #
@@ -240,7 +243,7 @@ class Drone():
         while ((self.distanceToTarget(self.GPS_To_Publish)>self.distanceThreshold)):
             if(self.geoFencing()):
                 break
-            print("Distance to GPS targat   " + str(self.distanceToTarget(self.GPS_To_Publish)) )
+            #print("Distance to GPS targat   " + str(self.distanceToTarget(self.GPS_To_Publish)) )
             
             
             header.stamp = rospy.Time.now()
