@@ -105,11 +105,16 @@
               <table>
                 <tr>
                   <td>Lat/Lon</td>
-                  <td id="droneLatLon">---</td>
+                  <td id="droneLat">---</td>
+                  <td id="droneLon">---</td>
+                </tr>
+                <tr>
+                  <td>Altitude AMSL</td>
+                  <td colspan="2" id="droneAltitude">---</td>
                 </tr>
                 <tr>
                   <td>State</td>
-                  <td id="droneState">---</td>
+                  <td colspan="2" id="droneState">---</td>
                 </tr>
               </table>
             </div>
@@ -118,7 +123,8 @@
               <table>
                 <tr>
                   <td>Lat/Lon</td>
-                  <td id="targetLatLon">---</td>
+                  <td id="targetLat">---</td>
+                  <td id="targetLon">---</td>
                 </tr>
               </table>
               <button id="targetButton" disabled="true">Go To Target</button>
@@ -140,18 +146,32 @@
       // show the scale bar on the lower left corner
       L.control.scale({imperial: false, metric: true}).addTo(map);
 
-      // Circle
-			var circ = L.circle([55.471994, 10.32275], {
-			    color: 'red',
-			    fillColor: '#f03',
-			    fillOpacity: 0.5,
-			    radius: 4
+      // Markers
+      var droneIcon = L.icon({
+        iconUrl: 'AED_Drone.png',
+        iconSize: [96, 48],
+        iconAnchor:   [48, 24]
+      });
+      var drone = L.marker([55.471994, 10.32290], {
+        icon: droneIcon
+      }).addTo(map);
+			var circTar = L.circle([55.471994, 10.32275], {
+        color: 'red',
+			  fillColor: 'red',
+			  fillOpacity: 0.5,
+			  radius: 4
 			}).addTo(map);
-
-      // Marker
-      var drone = L.marker({lat: 55.471994, lon: 10.32290}).bindPopup('Droneboi').addTo(map);
-
-      var polyline = L.polyline({color: 'red'}).addTo(map);
+			var circStart = L.circle([55.471994, 10.32275], {
+        color: 'green',
+			  fillColor: 'green',
+			  fillOpacity: 0.5,
+			  radius: 4
+			}).addTo(map);
+      var trace = L.polyline([], {
+        color: 'red',
+        opacity: 0.8,
+        weight: 5
+      }).addTo(map);
 
       // On map click
       var tarLat;
@@ -160,9 +180,10 @@
         tarLat = e.latlng.lat;
         tarLon = e.latlng.lng;
 
-        circ.setLatLng(e.latlng);
+        circTar.setLatLng(e.latlng);
         
-        document.getElementById("targetLatLon").innerHTML = tarLat.toString().slice(0, 7) + ", " + tarLon.toString().slice(0, 7);
+        document.getElementById("targetLat").innerHTML = tarLat.toString().slice(0, 7);
+        document.getElementById("targetLon").innerHTML = tarLon.toString().slice(0, 7);
         document.getElementById("targetButton").disabled = false; 
       }
       map.on('click', onMapClick);
@@ -174,17 +195,6 @@
       ros.on('close', function(){console.log('Connection to websocket server closed.');});
 
       // Subscribers
-      var clockTopic = new ROSLIB.Topic({
-        ros: ros,
-        name: '/clock',
-        messageType: 'rosgraph_msgs/Clock',
-        throttle_rate: 1000
-      });
-      clockTopic.subscribe(function(msg){
-        console.log('Received message on ' + clockTopic.name + ': ' + msg.clock);
-        document.getElementById('clock').innerHTML = msg.clock.secs;
-      });
-
       var globalposTopic = new ROSLIB.Topic({
         ros: ros,
         name: '/mavros/global_position/global',
@@ -195,10 +205,11 @@
         console.log('Received message on ' + globalposTopic.name);
         var lat = msg.latitude;
         var lon = msg.longitude;
-        document.getElementById('droneLatLon').innerHTML = lat.toString().slice(0, 7) + ", " + lon.toString().slice(0, 7);
+        document.getElementById('droneLat').innerHTML = lat.toString().slice(0, 7);
+        document.getElementById('droneLon').innerHTML = lon.toString().slice(0, 7);
         var latlon = new L.LatLng(lat, lon);
         drone.setLatLng(latlon);
-        polyline.addLatLng(latlon);
+        trace.addLatLng(latlon);
         map.setView({lon: lon, lat: lat})
       });
 
@@ -211,6 +222,17 @@
       stateTopic.subscribe(function(msg) {
         console.log('Received message on ' + stateTopic.name);
         document.getElementById('droneState').innerHTML = msg.mode;
+      });
+
+      var altitudeTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/mavros/altitude',
+        messageType: 'mavros_msgs/Altitude',
+        throttle_rate: 1000
+      });
+      altitudeTopic.subscribe(function(msg) {
+        console.log('Received message on ' + altitudeTopic.name);
+        document.getElementById('droneAltitude').innerHTML = msg.amsl.toString().slice(0, 7);
       });
 
       var imgTopic = new ROSLIB.Topic({
@@ -234,7 +256,8 @@
 
       // Send target coordinates
       document.getElementById("targetButton").onclick = function(){
-        polyline.setLatLngs([drone.getLatLng()]);
+        circStart.setLatLng(drone.getLatLng());
+        trace.setLatLngs([drone.getLatLng()]);
         console.log(tarLat, tarLon);
         var msg = new ROSLIB.Message({
           header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},

@@ -3,7 +3,6 @@ echo "Cleaning up.."
 
 if [ $1 = "M" ]
 then
-	: #Argument was given
 	echo "Running Magnus paths"
 	find ~/EiT/PX4-Autopilot/ -name "*_aed*" -delete
 	echo "Symlinking.."
