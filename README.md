@@ -3,7 +3,7 @@
 ## Install dependencies
 
 ```console
-sudo apt-get install ros-$ROS_DISTRO-realsense2-camera
+sudo apt-get install ros-$ROS_DISTRO-realsense2-camera ros-$ROS_DISTRO-rosbridge-server
 ```
 
 ## Instructions for simulating AED UAV in Gazebo
