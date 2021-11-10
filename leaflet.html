@@ -14,7 +14,7 @@
       * {
         padding: 0;
         margin: 0;
-        font-family: "Comic Sans MS", "Comic Sans", cursive;
+        font-family: Calibri,Candara,Segoe,Segoe UI,Optima,Arial,sans-serif;
       }
 
       html, body {
@@ -51,21 +51,45 @@
         text-align: center;
         display: table;
         width: 100%;
-        background-image: linear-gradient(red, yellow);
       }
 
       #interface_wrapper > div {
-        border: 1px solid black;
+        background-color: #EEE;
         margin: 10px;
         padding: 5px;
       }
 
+      /* Tables */
+      #interface_wrapper table {
+        width: 100%;
+        margin: 10px;
+      }
+
+      #interface_wrapper table tr > td:first-of-type {
+        width: 30%;
+        text-align: right;
+      }
+
       #interface_wrapper button {
         width: 100%;
+        font-size: 20px;
       }
 
       #rgbData {
         width: 100%;
+      }
+
+      /* Fonts */
+      h1 {
+        font-size: 30px;
+        text-align: left;
+        margin: 20px auto 20px 20px;
+      }
+
+      h2 {
+        font-size: 20px;
+        text-align: left;
+        margin: 5px auto 5px 10px;
       }
     </style>
   </head>
@@ -75,20 +99,29 @@
         <div class="cell" id="map"></div>
         <div class="cell">
           <div id="interface_wrapper">
-            <h1>Prety uI</h1>
+            <h1>AED Drone HQ</h1>
             <div id="boxDrone">
               <h2>Drone State</h2>
-              <p id="droneLatLon">latlon</p>
-              <p id="droneState">state</p>
+              <table>
+                <tr>
+                  <td>Lat/Lon</td>
+                  <td id="droneLatLon">---</td>
+                </tr>
+                <tr>
+                  <td>State</td>
+                  <td id="droneState">---</td>
+                </tr>
+              </table>
             </div>
             <div id="boxTarget">
               <h2>Target</h2>
-              <p id="targetLatLon">nuthin'</p>
-              <button id="targetButton" disabled="true">go wroom</button>
-            </div>
-            <div>
-              <p>Is_alive:</p>
-              <p id="clock">clerk</p>
+              <table>
+                <tr>
+                  <td>Lat/Lon</td>
+                  <td id="targetLatLon">---</td>
+                </tr>
+              </table>
+              <button id="targetButton" disabled="true">Go To Target</button>
             </div>
           </div>
           <img id="rgbData" />
@@ -118,6 +151,8 @@
       // Marker
       var drone = L.marker({lat: 55.471994, lon: 10.32290}).bindPopup('Droneboi').addTo(map);
 
+      var polyline = L.polyline({color: 'red'}).addTo(map);
+
       // On map click
       var tarLat;
       var tarLon;
@@ -133,7 +168,7 @@
       map.on('click', onMapClick);
 
       // ROS stuff
-      var ros = new ROSLIB.Ros({url: 'ws://localhost:8080'});
+      var ros = new ROSLIB.Ros({url: 'ws://localhost:9090'});
       ros.on('connection', function(){console.log('Connected to websocket server.');});
       ros.on('error', function(error){console.log('Error connecting to websocket server: ', error);});
       ros.on('close', function(){console.log('Connection to websocket server closed.');});
@@ -163,6 +198,7 @@
         document.getElementById('droneLatLon').innerHTML = lat.toString().slice(0, 7) + ", " + lon.toString().slice(0, 7);
         var latlon = new L.LatLng(lat, lon);
         drone.setLatLng(latlon);
+        polyline.addLatLng(latlon);
         map.setView({lon: lon, lat: lat})
       });
 
@@ -198,6 +234,7 @@
 
       // Send target coordinates
       document.getElementById("targetButton").onclick = function(){
+        polyline.setLatLngs([drone.getLatLng()]);
         console.log(tarLat, tarLon);
         var msg = new ROSLIB.Message({
           header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
@@ -205,7 +242,7 @@
             position: {
               latitude: tarLat,
               longitude: tarLon,
-              altitude: 500
+              altitude: 30
             },
             orientation: {
               x: 0.0,
