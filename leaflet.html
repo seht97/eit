@@ -1,0 +1,222 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <script src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+    <script src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+        font-family: "Comic Sans MS", "Comic Sans", cursive;
+      }
+
+      html, body {
+        height: 100%;
+      }
+
+      .table {
+        display: table;
+      }
+
+      .row {
+        display: table-row;
+      }
+
+      .col {
+        display: table-column;
+      }
+
+      .cell {
+        display: table-cell;
+      }
+
+      #wrapper {
+        width: 100%;
+        height: 100%;
+        display: table;
+      }
+
+      #map {
+        width: 80%;
+      }
+
+      #interface_wrapper {
+        text-align: center;
+        display: table;
+        width: 100%;
+        background-image: linear-gradient(red, yellow);
+      }
+
+      #interface_wrapper > div {
+        border: 1px solid black;
+        margin: 10px;
+        padding: 5px;
+      }
+
+      #interface_wrapper button {
+        width: 100%;
+      }
+
+      #rgbData {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="table" id="wrapper">
+      <div class="row">
+        <div class="cell" id="map"></div>
+        <div class="cell">
+          <div id="interface_wrapper">
+            <h1>Prety uI</h1>
+            <div id="boxDrone">
+              <h2>Drone State</h2>
+              <p id="droneLatLon">latlon</p>
+              <p id="droneState">state</p>
+            </div>
+            <div id="boxTarget">
+              <h2>Target</h2>
+              <p id="targetLatLon">nuthin'</p>
+              <button id="targetButton" disabled="true">go wroom</button>
+            </div>
+            <div>
+              <p>Is_alive:</p>
+              <p id="clock">clerk</p>
+            </div>
+          </div>
+          <img id="rgbData" />
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript" type="text/javascript">
+      // initialize Leaflet
+      var map = L.map('map').setView({lon: 10.324096, lat: 55.471991}, 18);
+			L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3']
+      }).addTo(map);
+
+      // show the scale bar on the lower left corner
+      L.control.scale({imperial: false, metric: true}).addTo(map);
+
+      // Circle
+			var circ = L.circle([55.471994, 10.32275], {
+			    color: 'red',
+			    fillColor: '#f03',
+			    fillOpacity: 0.5,
+			    radius: 4
+			}).addTo(map);
+
+      // Marker
+      var drone = L.marker({lat: 55.471994, lon: 10.32290}).bindPopup('Droneboi').addTo(map);
+
+      // On map click
+      var tarLat;
+      var tarLon;
+      function onMapClick(e) {
+        tarLat = e.latlng.lat;
+        tarLon = e.latlng.lng;
+
+        circ.setLatLng(e.latlng);
+        
+        document.getElementById("targetLatLon").innerHTML = tarLat.toString().slice(0, 7) + ", " + tarLon.toString().slice(0, 7);
+        document.getElementById("targetButton").disabled = false; 
+      }
+      map.on('click', onMapClick);
+
+      // ROS stuff
+      var ros = new ROSLIB.Ros({url: 'ws://localhost:8080'});
+      ros.on('connection', function(){console.log('Connected to websocket server.');});
+      ros.on('error', function(error){console.log('Error connecting to websocket server: ', error);});
+      ros.on('close', function(){console.log('Connection to websocket server closed.');});
+
+      // Subscribers
+      var clockTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/clock',
+        messageType: 'rosgraph_msgs/Clock',
+        throttle_rate: 1000
+      });
+      clockTopic.subscribe(function(msg){
+        console.log('Received message on ' + clockTopic.name + ': ' + msg.clock);
+        document.getElementById('clock').innerHTML = msg.clock.secs;
+      });
+
+      var globalposTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/mavros/global_position/global',
+        messageType: 'sensor_msgs/NavSatFix',
+        throttle_rate: 200
+      });
+      globalposTopic.subscribe(function(msg) {
+        console.log('Received message on ' + globalposTopic.name);
+        var lat = msg.latitude;
+        var lon = msg.longitude;
+        document.getElementById('droneLatLon').innerHTML = lat.toString().slice(0, 7) + ", " + lon.toString().slice(0, 7);
+        var latlon = new L.LatLng(lat, lon);
+        drone.setLatLng(latlon);
+        map.setView({lon: lon, lat: lat})
+      });
+
+      var stateTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/mavros/state',
+        messageType: 'mavros_msgs/State',
+        throttle_rate: 1000
+      });
+      stateTopic.subscribe(function(msg) {
+        console.log('Received message on ' + stateTopic.name);
+        document.getElementById('droneState').innerHTML = msg.mode;
+      });
+
+      var imgTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/rgb/data/compressed',
+        messageType: 'sensor_msgs/CompressedImage',
+        throttle_rate: 200
+      });
+      imgTopic.subscribe(function(msg){
+        var data = msg.data;
+        console.log('Received message on ' + imgTopic.name);
+        document.getElementById('rgbData').setAttribute('src', "data:image/jpeg;base64," + data);
+      });
+
+      // Publishers
+      var targetTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/gui/target',
+        messageType: 'geographic_msgs/GeoPoseStamped'
+      });
+
+      // Send target coordinates
+      document.getElementById("targetButton").onclick = function(){
+        console.log(tarLat, tarLon);
+        var msg = new ROSLIB.Message({
+          header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
+          pose: {
+            position: {
+              latitude: tarLat,
+              longitude: tarLon,
+              altitude: 500
+            },
+            orientation: {
+              x: 0.0,
+              y: 0.0,
+              z: 0.0,
+              w: 1.0
+            }
+          }
+        });
+        targetTopic.publish(msg);
+      };
+    </script>
+  </body>
+</html>

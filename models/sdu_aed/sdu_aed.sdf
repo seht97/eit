@@ -81,6 +81,51 @@
       </axis>
     </joint>
 
+    <!-- AED Box -->
+    <link name='aed_box'>
+      <pose> -0.0 -0.0 -0.03 1.57 0 1.57 </pose>
+      <inertial>
+        <mass>0.7</mass>
+        <inertia>
+          <ixx>0.003643274</ixx> <!-- for a box: ixx = 0.083 * mass * (y*y + z*z) -->
+          <iyy>0.004857971</iyy> <!-- for a box: iyy = 0.083 * mass * (x*x + z*z) -->
+          <izz>0.002805359</izz> <!-- for a box: izz = 0.083 * mass * (x*x + y*y) -->
+        </inertia>
+      </inertial>
+      <collision name='aed_box_collision'>
+        <geometry>
+          <box>
+            <size>0.186 0.117 0.2214</size>
+          </box>
+        </geometry>
+      </collision>  
+      <visual name='aed_box_visual'>
+        <geometry>
+          <box>
+            <size>0.186 0.117 0.2214</size>
+          </box>
+        </geometry>
+      </visual>
+    </link>
+    <joint name='aed_box_joint' type='revolute'>
+      <child>aed_box</child>
+      <parent>base_link</parent>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <limit>
+          <lower>0</lower>
+          <upper>0</upper>
+          <effort>0</effort>
+          <velocity>0</velocity>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+      
     <!-- Rotor 0 (CW) -->
     <link name='rotor_0'>
       <pose>0.0 -0.37 0.170 0 -0 0</pose>
@@ -771,7 +816,7 @@
 
     <!-- Depth Camera sensor -->
     <link name='sensor_link'>
-      <pose>0.0 0.0 0.0 0 0 0</pose>
+      <pose>0.0 0.0 -0.08 0 0 0</pose>
       <inertial>
         <mass>0.095</mass>
         <inertia>
@@ -783,24 +828,6 @@
           <izz>2.407e-6</izz>
         </inertia>
       </inertial>
-      <collision name='collision'>
-        <geometry>
-          <cylinder>
-            <length>0.026</length>
-            <radius>0.061</radius>
-          </cylinder>
-        </geometry>
-        <max_contacts>10</max_contacts>
-        <surface>
-          <contact>
-            <ode/>
-          </contact>
-          <bounce/>
-          <friction>
-            <ode/>
-          </friction>
-        </surface>
-      </collision>
       <visual name='visual'>
         <geometry>
           <cylinder>
@@ -811,13 +838,13 @@
       </visual>
       <sensor name="depth_camera" type="depth">
         <update_rate>30</update_rate>
-      <pose>0.0 0.0 0.0 0 1.57 0</pose>
+        <pose>0.0 0.0 0.0 0 1.57 0</pose>
         <camera>
           <horizontal_fov>1.22173</horizontal_fov>
           <image>
             <format>R8G8B8</format>
-            <width>640</width>
-            <height>480</height>
+            <width>320</width>
+            <height>240</height>
           </image>
           <clip>
             <near>0.25</near>
@@ -830,11 +857,11 @@
           <updateRate>30</updateRate>
           <pointCloudCutoff>0.25</pointCloudCutoff>
           <pointCloudCutoffMax>9</pointCloudCutoffMax>
-          <imageTopicName>rgb/image_raw</imageTopicName>
-          <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
-          <depthImageTopicName>depth/image_raw</depthImageTopicName>
+          <imageTopicName>color/image_raw</imageTopicName>
+          <cameraInfoTopicName>color/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>depth/image_rect_raw</depthImageTopicName>
           <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
-          <pointCloudTopicName>depth/points</pointCloudTopicName>
+          <pointCloudTopicName>depth/color/points</pointCloudTopicName>
           <frameName>camera_link</frameName>
           <distortion_k1>0.0</distortion_k1>
           <distortion_k2>0.0</distortion_k2>

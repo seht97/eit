@@ -1,5 +1,11 @@
 <?xml version="1.0"?>
 <launch>
+
+    <remap from="/camera/depth/color/points"   to="/pcl"/>
+    <remap from="/camera/depth/camera_info"    to="/depth/info"/>
+    <remap from="/camera/depth/image_rect_raw" to="/depth/data"/>
+    <remap from="/camera/color/camera_info"    to="/rgb/info"/>
+    <remap from="/camera/color/image_raw"      to="/rgb/data"/>
     <!-- Posix SITL environment launch script -->
     <!-- launches PX4 SITL, Gazebo environment, and spawns vehicle -->
     <!-- vehicle pose -->
@@ -55,4 +61,7 @@
         <arg name="fcu_url" value="$(arg fcu_url)"/>
         <arg name="respawn_mavros" value="$(arg respawn_mavros)"/>
     </include>
+
+    <!-- Leaflet -->
+    <include file="$(find eit)/launch/leaflet.launch" />
 </launch>

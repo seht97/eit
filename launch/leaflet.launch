@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+    <arg name="port" value="8080"/>
+  </include>
+</launch>
+
+<!-- RASP = export ROS_MASTER_URI=http://localhost:11311 && export ROS_HOSTNAME=192.168.131.220 -->
+<!-- PC   = export ROS_MASTER_URI=http://192.168.131.220:11311 && export ROS_HOSTNAME=192.168.131.190 -->

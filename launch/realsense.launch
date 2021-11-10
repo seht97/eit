@@ -1,19 +1,27 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="width"  value="640"/>
-  <arg name="height" value="480"/>
-  <arg name="fps"    value="30"/>
+  <arg name="depth_width"       default="640"/> <!-- reduces to 320 on USB less than 3.0 -->
+  <arg name="depth_height"      default="480"/> <!-- reduces to 240 on USB less than 3.0 -->
+  <arg name="depth_fps"         default="30"/>
+  <arg name="color_width"       default="640"/>
+  <arg name="color_height"      default="480"/>
+  <arg name="color_fps"         default="30"/>
+  <arg name="enable_pointcloud" default="true"/>
 
-  <remap from="/camera/depth/color/points" to="/pointcloud"/>
+  <remap from="/camera/depth/color/points"   to="/pcl"/>
+  <remap from="/camera/depth/camera_info"    to="/depth/info"/>
+  <remap from="/camera/depth/image_rect_raw" to="/depth/data"/>
+  <remap from="/camera/color/camera_info"    to="/rgb/info"/>
+  <remap from="/camera/color/image_raw"      to="/rgb/data"/>
   
   <include file="$(find realsense2_camera)/launch/rs_camera.launch">
     <arg name="device_type"       value="l515"/>
-    <arg name="depth_width"       value="$(arg width)"/>
-    <arg name="depth_height"      value="$(arg height)"/>
-    <arg name="depth_fps"         value="$(arg fps)"/>
-    <arg name="color_width"       value="$(arg width)"/>
-    <arg name="color_height"      value="$(arg height)"/>
-    <arg name="color_fps"         value="$(arg fps)"/>
+    <arg name="depth_width"       value="$(arg depth_width)"/>
+    <arg name="depth_height"      value="$(arg depth_height)"/>
+    <arg name="depth_fps"         value="$(arg depth_fps)"/>
+    <arg name="color_width"       value="$(arg color_width)"/>
+    <arg name="color_height"      value="$(arg color_height)"/>
+    <arg name="color_fps"         value="$(arg color_fps)"/>
     <arg name="enable_depth"      value="true"/>
     <arg name="enable_color"      value="true"/>
     <arg name="enable_infra1"     value="false"/>
@@ -21,8 +29,7 @@
     <arg name="enable_fisheye"    value="false"/>
     <arg name="enable_gyro"       value="false"/>
     <arg name="enable_accel"      value="false"/>
-    <arg name="enable_pointcloud" value="true"/>
-    <arg name="enable_sync"       value="true"/>
+    <arg name="enable_pointcloud" value="$(arg enable_pointcloud)"/>
     <arg name="ordered_pc"        value="true"/>
   </include>
 </launch>
