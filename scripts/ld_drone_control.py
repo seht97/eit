@@ -73,7 +73,6 @@ class Drone():
             self.landing_position = self.current_position
             self.landing_position.pose.position.x = self.current_position.pose.position.x + pos_msg.x
             self.landing_position.pose.position.y = self.current_position.pose.position.y + pos_msg.y
-            self.landing_position.pose.position.z = self.altitude
         self.recievedLandingPosition = True
         if pos_msg.x == 0 and pos_msg.y == 0:
             self.safe_to_land = True
