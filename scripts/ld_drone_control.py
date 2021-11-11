@@ -108,11 +108,13 @@ class Drone():
             self.rate.sleep()
 
         rospy.loginfo("Waiting for change mode to offboard & arming rotorcraft...")
-        while not self.state.mode == "OFFBOARD" and not self.state.armed:
+        while not self.state.mode == "OFFBOARD" or not self.state.armed:
             if not self.state.mode == "OFFBOARD":
                 self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
             if not self.state.armed:
                 self.arming_client(True)
+            self.target_pos_pub.publish(self.takeOffPosition)
+            self.rate.sleep()
         rospy.loginfo("Offboard mode enabled and rotorcraft armed")
 
         # Reached takeoff position
