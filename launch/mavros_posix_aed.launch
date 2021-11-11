@@ -19,8 +19,8 @@
     <!-- vehicle model and world -->
     <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="sdu_aed"/>
-    <arg name="env" default="hca_airport"/>
-    <arg name="world" default="$(find eit_playground)/worlds/$(arg env).world"/>
+    <arg name="env" default="hca_airport_cylinders"/>
+    <arg name="world" default="$(find eit)/worlds/$(arg env).world"/>
     <arg name="sdf" default="$(find eit)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
     <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />
     <env name="PX4_ESTIMATOR" value="$(arg est)" />
