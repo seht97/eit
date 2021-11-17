@@ -109,8 +109,9 @@
                   <td id="droneLon">---</td>
                 </tr>
                 <tr>
-                  <td>Altitude AMSL</td>
-                  <td colspan="2" id="droneAltitude">---</td>
+                  <td>AMSL/Local</td>
+                  <td id="droneAltAMSL">---</td>
+                  <td id="droneAltLocal">---</td>
                 </tr>
                 <tr>
                   <td>State</td>
@@ -232,7 +233,8 @@
       });
       altitudeTopic.subscribe(function(msg) {
         console.log('Received message on ' + altitudeTopic.name);
-        document.getElementById('droneAltitude').innerHTML = msg.amsl.toString().slice(0, 7);
+        document.getElementById('droneAltAMSL').innerHTML = msg.amsl.toString().slice(0, 7);
+        document.getElementById('droneAltLocal').innerHTML = msg.local.toString().slice(0, 7);
       });
 
       var imgTopic = new ROSLIB.Topic({
