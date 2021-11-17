@@ -15,34 +15,36 @@ class Drone():
         self.hz = 25
         self.rate = rospy.Rate(self.hz)
         self.state = State()
-        self.receivedPosition = False
-        self.recievedLandingPosition = False
+        self.received_position = False
+        self.received_data_from_landing_detector = False
         self.landing_position = None
         self.safe_to_land = False
         self.allowed_to_land = False
         self.home_position = PoseStamped()
         self.current_position = PoseStamped()
         self.altitude = 15   # [m]
+        self.altitude_inc = 0.5 # amount to increase altitude when first objects are detected [m]
         self.land_velocity = 1  # [m/s]
+        self.land_velocity_slow = 0.5   # velocity to decrease to when first objects are detected [m/s]
         # Setup stuff
-        self._init_publishers()
-        self._init_subscribers()
-        self._init_services()
+        self.__init_publishers()
+        self.__init_subscribers()
+        self.__init_services()
         self.setup_drone()
 
-    def _init_publishers(self):
+    def __init_publishers(self):
         # Setup publishers
         self.target_pos_pub = rospy.Publisher("/mavros/setpoint_position/local", PoseStamped, queue_size=1)
         self.toggle_detection_pub = rospy.Publisher("/landing_detector/toggle_detection", Bool, queue_size=1)
 
-    def _init_subscribers(self):
+    def __init_subscribers(self):
         # Setup subscribers
-        self.state_sub = rospy.Subscriber('/mavros/state', State, self.state_cb)
-        self.pos_sub = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.position_cb)
-        self.landing_detector_sub = rospy.Subscriber('landing_detector/position', Point32, self.landing_detector_cb)
-        self.allowed_to_land_sub = rospy.Subscriber('landing_detector/allow_land', Bool, self.allow_land_cb)
+        self.state_sub = rospy.Subscriber('/mavros/state', State, self.__state_cb)
+        self.pos_sub = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.__position_cb)
+        self.landing_detector_sub = rospy.Subscriber('landing_detector/position', Point32, self.__landing_detector_cb)
+        self.allowed_to_land_sub = rospy.Subscriber('landing_detector/allow_land', Bool, self.__allow_land_cb)
 
-    def _init_services(self):
+    def __init_services(self):
         # Setup services
         rospy.wait_for_service("/mavros/cmd/arming")
         rospy.loginfo("/mavros/cmd/arming service ready!")
@@ -56,35 +58,40 @@ class Drone():
         self.takeoff_client = rospy.ServiceProxy("/mavros/cmd/takeoff", CommandTOL)
 
     # Callbacks
-    def state_cb(self, state):
+    def __state_cb(self, state):
         self.state = state
 
-    def position_cb(self, position):
+    def __position_cb(self, position):
         self.current_position = position
         # Save home position
-        if(not self.receivedPosition):
+        if(not self.received_position):
             self.home_position = position
-        self.receivedPosition = True
+        self.received_position = True
 
-    def landing_detector_cb(self, pos_msg):
+    def __landing_detector_cb(self, pos_msg):
         # Save position detected as current position + offset
         # Only do so if offset is not 0, else we need to descend and not set the altitude to self.altitude
         if not self.safe_to_land:
             self.landing_position = self.current_position
             self.landing_position.pose.position.x = self.current_position.pose.position.x + pos_msg.x
             self.landing_position.pose.position.y = self.current_position.pose.position.y + pos_msg.y
-        self.recievedLandingPosition = True
+        # If we recieve data, increase altitude by 0.5m and decrease landing velocity (but only once)
+        # z-value from msg is only used to indicate wether the landing detector is running the detection
+        # (meaning that it recieves point cloud values)
+        if pos_msg.z != 0 and not self.received_data_from_landing_detector:
+            rospy.loginfo('Data recieved, increasing altitude by {}m and decreasing landing velocity to {}m/s'.format(self.altitude_inc, self.land_velocity_slow))
+            self.land_velocity = 0.5
+            self.landing_position.pose.position.z = self.current_position.pose.position.z + 0.5
+            self.received_data_from_landing_detector = True
+        # If no obstacles underneath, descend slowly
         if pos_msg.x == 0 and pos_msg.y == 0:
             self.safe_to_land = True
         else:
             self.safe_to_land = False
 
-    def allow_land_cb(self, msg):
+    def __allow_land_cb(self, msg):
         # True if we are allowed to land
         self.allowed_to_land = msg.data
-        print(self.allowed_to_land)
-        if self.allowed_to_land:
-            print("Working")
 
     def setup_drone(self):
         rospy.loginfo("Waiting for FCU connection...")
@@ -93,18 +100,18 @@ class Drone():
         rospy.loginfo("FCU connected")
 
         rospy.loginfo("Waiting on position...")
-        while not self.receivedPosition:
+        while not self.received_position:
             self.rate.sleep()
         rospy.loginfo("Position received")
 
-        self.takeOffPosition = PoseStamped()
-        self.takeOffPosition.pose.position.x = self.home_position.pose.position.x
-        self.takeOffPosition.pose.position.y = self.home_position.pose.position.y
-        self.takeOffPosition.pose.position.z = self.altitude
+        self.take_off_position = PoseStamped()
+        self.take_off_position.pose.position.x = self.home_position.pose.position.x
+        self.take_off_position.pose.position.y = self.home_position.pose.position.y
+        self.take_off_position.pose.position.z = self.altitude
 
         # Send a few takeoff commands before starting
         for i in range(20):
-            self.target_pos_pub.publish(self.takeOffPosition)
+            self.target_pos_pub.publish(self.take_off_position)
             self.rate.sleep()
 
         rospy.loginfo("Waiting for change mode to offboard & arming rotorcraft...")
@@ -113,7 +120,7 @@ class Drone():
                 self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
             if not self.state.armed:
                 self.arming_client(True)
-            self.target_pos_pub.publish(self.takeOffPosition)
+            self.target_pos_pub.publish(self.take_off_position)
             self.rate.sleep()
         rospy.loginfo("Offboard mode enabled and rotorcraft armed")
 
@@ -121,21 +128,21 @@ class Drone():
         header = Header()
         dist_to_takeoff_pos = self.altitude
         while(0.5 < dist_to_takeoff_pos):
-            x = self.takeOffPosition.pose.position.x - self.current_position.pose.position.x
-            y = self.takeOffPosition.pose.position.y - self.current_position.pose.position.y
-            z = self.takeOffPosition.pose.position.z - self.current_position.pose.position.z
+            x = self.take_off_position.pose.position.x - self.current_position.pose.position.x
+            y = self.take_off_position.pose.position.y - self.current_position.pose.position.y
+            z = self.take_off_position.pose.position.z - self.current_position.pose.position.z
             dist_to_takeoff_pos = sqrt(x*x + y*y + z*z)
             header.stamp = rospy.Time.now()
-            self.takeOffPosition.header = header
-            self.target_pos_pub.publish(self.takeOffPosition)
+            self.take_off_position.header = header
+            self.target_pos_pub.publish(self.take_off_position)
             self.rate.sleep()
 
-    def distanceToTarget(self,targetPosition):
-        x = targetPosition.pose.position.x - self.current_position.pose.position.x
-        y = targetPosition.pose.position.y - self.current_position.pose.position.y
+    def distance_to_target(self, target_position):
+        x = target_position.pose.position.x - self.current_position.pose.position.x
+        y = target_position.pose.position.y - self.current_position.pose.position.y
         return sqrt(x*x + y*y)
 
-    def makeWaypoints(self):
+    def make_waypoints(self):
         waypoints = []
         tp1 = PoseStamped()
         # On top of middle cylinder
@@ -149,29 +156,31 @@ class Drone():
         waypoints.append(tp1)
         return waypoints
 
-    def shutdownDrone(self):
+    def shutdown_drone(self):
         rospy.loginfo("Landing..")
         while not self.state.mode == "AUTO.LAND":
             self.land_client()
         rospy.signal_shutdown("Done")
 
-    def flyRoute(self):
+    def fly_route(self):
         rospy.loginfo("Flying Route")
         waypoint = 0
         header = Header()
-        waypoints = self.makeWaypoints()
+        waypoints = self.make_waypoints()
         while (waypoint < len(waypoints) and self.state.armed):
-            targetPosition = waypoints[waypoint]
+            target_position = waypoints[waypoint]
             header.stamp = rospy.Time.now()
-            targetPosition.header = header
-            self.target_pos_pub.publish(targetPosition)
+            target_position.header = header
+            self.target_pos_pub.publish(target_position)
             self.rate.sleep()
-            if(self.distanceToTarget(targetPosition) < 0.50):
+            if(self.distance_to_target(target_position) < 0.50):
                 rospy.loginfo('Next waypoint')
                 waypoint += 1
-        # Hold last position
+        # Hold last position until landing detector is activated
+        # and landing position is recieved
         rospy.loginfo('Holding position, activating landing detector')
-        while not self.recievedLandingPosition and self.landing_position is None:
+        #while not self.recievedLandingPosition and self.landing_position is None:
+        while self.landing_position is None:
             self.toggle_detection_pub.publish(Bool(data=True))
             self.target_pos_pub.publish(waypoints[-1])
             self.rate.sleep()
@@ -189,13 +198,13 @@ class Drone():
             self.rate.sleep()
         # Should have landed if we autodetect and disarm
         rospy.loginfo('Landing done')
-        self.shutdownDrone()
+        self.shutdown_drone()
 
 
 
 if __name__ == '__main__':
     rospy.init_node('ld_drone_control', anonymous=True)
     drone = Drone()
-    drone.flyRoute()
-    #drone.shutdownDrone()
+    drone.fly_route()
+    #drone.shutdown_drone()
     rospy.spin()
