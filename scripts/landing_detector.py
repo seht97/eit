@@ -11,7 +11,7 @@ import cv2
 
 import numpy as np
 import pcl
-from time import time
+#from time import time
 
 class LandingDetector:
     def __init__(self):
@@ -173,9 +173,9 @@ class LandingDetector:
             else:
                 i += 1
         end_time = time()
-        print('Elapsed time: {}'.format(end_time-start_time))
+        #print('Elapsed time: {}'.format(end_time-start_time))
         if found_landing_spot:
-            print("Landing spot found at: ({},{})".format(landing_loc[0], landing_loc[1]))
+            #print("Landing spot found at: ({},{})".format(landing_loc[0], landing_loc[1]))
             # Publish landing spot offset point to drone control
             point = Point32(x=landing_loc[0]*0.5, y=landing_loc[1]*0.5, z=1.0)
             self.point_pub.publish(point)
@@ -183,7 +183,7 @@ class LandingDetector:
             if mean_max_dist_to_plane < 2.0:
                 self.allow_land_pub.publish(Bool(data=True))
         else:
-            print("Unable to detect sutiable landing spot.")
+            rospy.loginfo("Unable to detect sutiable landing spot.")
 
 
 def main():
