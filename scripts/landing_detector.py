@@ -93,8 +93,8 @@ class LandingDetector:
         w = self.DRONE_WIDTH
         h = self.DRONE_HEIGHT
         # Step size for boxes
-        dx = w/4
-        dy = h/4
+        dx = w/8
+        dy = h/8
         # Save filter sizes
         self.box_filter = []
         # Num steps are based on area of current PC (which is dependent on altitude)
@@ -112,16 +112,22 @@ class LandingDetector:
 
     def detect(self):
         # Run detection
-        start_time = time()
+        #start_time = time()
         # Segment plane once from full PC
-        seg = self.pc.make_segmenter_normals(ksearch=20)
+        # RANSAC plane estimation using normals (induces extra constraint)
+        #seg = self.pc.make_segmenter_normals(ksearch=20)
+        #seg.set_optimize_coefficients(True)
+        #seg.set_model_type(pcl.SACMODEL_NORMAL_PLANE)
+        #seg.set_normal_distance_weight(0.1)
+        #seg.set_method_type(pcl.SAC_RANSAC)
+        #seg.set_max_iterations(50)
+        # Standard RANSAC plane segmentation
+        seg = self.pc.make_segmenter()
         seg.set_optimize_coefficients(True)
-        seg.set_model_type(pcl.SACMODEL_NORMAL_PLANE)
-        seg.set_normal_distance_weight(0.1)
+        seg.set_model_type(pcl.SACMODEL_PLANE)
         seg.set_method_type(pcl.SAC_RANSAC)
-        seg.set_max_iterations(50)
         # Change this distance threshold to maximum distance between points on the plane (z-distance)
-        seg.set_distance_threshold(0.1)
+        seg.set_distance_threshold(0.10)
         indices, model = seg.segment()
         # Extract the plane estimated underneath the drone
         cloud_plane = self.pc.extract(indices, negative=False)
@@ -172,7 +178,7 @@ class LandingDetector:
                 found_landing_spot = True
             else:
                 i += 1
-        end_time = time()
+        #end_time = time()
         #print('Elapsed time: {}'.format(end_time-start_time))
         if found_landing_spot:
             #print("Landing spot found at: ({},{})".format(landing_loc[0], landing_loc[1]))
