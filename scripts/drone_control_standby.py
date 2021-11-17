@@ -134,36 +134,28 @@ class Drone():
             self.target_pos_pub.publish(self.GPS_To_Publish) # Publishing GPS target at homeposition to keep in offboard mode 
             self.rate.sleep()
         print("GPS target received")
-      
-
-
-        # send a few takeoff commands before starting
-        for i in range(20):
-            self.target_pos_pub.publish(self.GPS_To_Publish)
-            self.rate.sleep()
 
 
         print("Waiting for change mode to offboard rotorcraft...")
         while not self.state.mode == "OFFBOARD":
             self.rate.sleep()
+            self.GPS_To_Publish.header = header
+            self.target_pos_pub.publish(self.GPS_To_Publish) # Publishing GPS target at homeposition to keep in offboard mode 
+            self.rate.sleep()
             if not self.state.mode == "OFFBOARD" and self.simulation:
                  self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
                  rospy.loginfo("OFFBOARD enable")
-        
+
+
         print("Waiting for change mode to arming rotorcraft...")
         while not self.state.armed: 
+            self.rate.sleep()
+            self.GPS_To_Publish.header = header
+            self.target_pos_pub.publish(self.GPS_To_Publish) # Publishing GPS target at homeposition to keep in offboard mode 
             self.rate.sleep()
             if not self.state.armed:
                 self.arming_client(True)
                 rospy.loginfo("Rotorcraft armed")
-
-          
-            
-
-
-    
-
-
 
 
     def distanceToTarget(self,targetPosition): #
@@ -194,12 +186,15 @@ class Drone():
                 
 
     def flyRoute(self):
+        
         header = Header()
+
         while self.geoFencing():
             self.rate.sleep()
             header.stamp = rospy.Time.now()
             self.target_pos_pub.publish(self.GPS_To_Publish)
             print("Distance to target " + str(self.distanceToTarget(self.GPS_target)) ) 
+
         rospy.loginfo("Flying Route")
 
         self.geoFencing()
@@ -217,7 +212,7 @@ class Drone():
            # print(self.GPS_target)
         while(self.distanceToTarget(self.GPS_To_Publish)>self.distanceThreshold):
             if(self.geoFencing()):
-                break
+                return
 
             header.stamp = rospy.Time.now()
             self.GPS_To_Publish.header = header
@@ -242,7 +237,7 @@ class Drone():
 
         while ((self.distanceToTarget(self.GPS_To_Publish)>self.distanceThreshold)):
             if(self.geoFencing()):
-                break
+                return
             #print("Distance to GPS targat   " + str(self.distanceToTarget(self.GPS_To_Publish)) )
             
             
