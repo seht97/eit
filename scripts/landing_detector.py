@@ -58,7 +58,11 @@ class LandingDetector:
         
         # Only run detection if we recieve points and detection is initiated
         if pc.size > 0:
-            self.pc = pcl.PointCloud(pc)
+            pc_filtered = pcl.PointCloud(pc).make_statistical_outlier_filter()
+            pc_filtered.set_mean_k(10)
+            pc_filtered.set_std_dev_mul_thresh(1.0)
+            self.pc = pc_filtered.filter()
+            #self.pc = pcl.PointCloud(pc)
         if self.run_detection:
             if pc.size > 0:
                 # New PC obtained, run normal detection
@@ -88,10 +92,13 @@ class LandingDetector:
         self.box_filter = []
         # Num steps are based on area of current PC (which is dependent on altitude)
         # As y is smallest FOV we base it on that
-        num_steps = int(np.asarray(self.pc)[-1,1] / dy) - 1
+        num_steps = int(np.max(np.asarray(self.pc)[:,1]) / dy) - 1
         if num_steps <= 0:
             num_steps = 1
         #print(int(np.asarray(self.pc)[-1,1] / dy), num_steps)
+        print('Num steps: {}, min_x: {}, min_y: {}, min_z: {}'.format(num_steps, np.min(np.asarray(self.pc)[:,0]), np.min(np.asarray(self.pc)[:,1]), np.min(np.asarray(self.pc)[:,2])))
+        print('Num steps: {}, max_x: {}, max_y: {}, max_z: {}'.format(num_steps, np.max(np.asarray(self.pc)[:,0]), np.max(np.asarray(self.pc)[:,1]), np.max(np.asarray(self.pc)[:,2])))
+        
         for i in range(num_steps):
             for yi in range(-i,i+1):
                 for xi in range(-i,i+1):
