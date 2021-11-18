@@ -27,7 +27,7 @@ class Drone():
         self.received_GPS_position = False
         self.received_MAVROS_altitude = False
 
-        self.simulation = False # ------------------------------------- IMPORTANT to set prior flight -----------------------------------
+        self.simulation = True # ------------------------------------- IMPORTANT to set prior flight -----------------------------------
         
         
         # self.home_position = PoseStamped()
@@ -238,8 +238,10 @@ class Drone():
         while ((self.distanceToTarget(self.GPS_To_Publish)>self.distanceThreshold)):
             if(self.geoFencing()):
                 return
-            #print("Distance to GPS targat   " + str(self.distanceToTarget(self.GPS_To_Publish)) )
-            
+            print("Flying to target - Distance :  " + str(self.distanceToTarget(self.GPS_To_Publish)) )
+            self.GPS_To_Publish = self.GPS_target   #
+            self.GPS_To_Publish.pose.position.altitude = self.home_MAVROS_altitude.amsl + self.altitude
+         
             
             header.stamp = rospy.Time.now()
             self.GPS_To_Publish.header = header
