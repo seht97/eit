@@ -10,7 +10,7 @@ from std_msgs.msg import Bool
 
 import numpy as np
 import pcl
-#from time import time
+from time import time
 
 class LandingDetector:
     def __init__(self):
@@ -101,7 +101,7 @@ class LandingDetector:
 
     def detect(self):
         # Run detection
-        #start_time = time()
+        start_time = time()
         # Segment plane once from full PC
         # RANSAC plane estimation using normals (induces extra constraint)
         #seg = self.pc.make_segmenter_normals(ksearch=20)
@@ -167,10 +167,10 @@ class LandingDetector:
                 found_landing_spot = True
             else:
                 i += 1
-        #end_time = time()
-        #print('Elapsed time: {}'.format(end_time-start_time))
+        end_time = time()
+        print('Elapsed time: {}'.format(end_time-start_time))
         if found_landing_spot:
-            #print("Landing spot found at: ({},{})".format(landing_loc[0], landing_loc[1]))
+            print("Landing spot found at: ({},{})".format(landing_loc[0], landing_loc[1]))
             # Publish landing spot offset point to drone control
             point = Point32(x=landing_loc[0]*0.5, y=landing_loc[1]*0.5, z=1.0)
             self.point_pub.publish(point)
