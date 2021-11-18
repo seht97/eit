@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
     <arg name="pointcloud_topic"        default="/pcl"/>
     <arg name="rgb_topic"               default="/rgb/data"/>
