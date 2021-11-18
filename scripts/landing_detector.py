@@ -7,7 +7,6 @@ from sensor_msgs.point_cloud2 import PointCloud2
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point32
 from std_msgs.msg import Bool
-import cv2
 
 import numpy as np
 import pcl
@@ -45,22 +44,12 @@ class LandingDetector:
         if not pc_topic:
             rospy.logerr('Parameter \'pointcloud_topic\' is not provided.')
             sys.exit(-1)
-        if not rgb_topic:
-            rospy.logerr('Parameter \'rgb_topic\' is not provided.')
-            sys.exit(-1)
         if not toggle_detection_topic:
             rospy.logerr('Parameter \'toggle_detection_topic\' is not provided.')
             sys.exit(-1)
         
         rospy.Subscriber(pc_topic, PointCloud2, self.__pc_callback, queue_size=1)
-        rospy.Subscriber(rgb_topic, Image, self.__rgb_callback, queue_size=1)
         rospy.Subscriber(toggle_detection_topic, Bool, self.__toggle_detection_callback, queue_size=1)
-
-    def __rgb_callback(self, msg):
-        # Save rgb image
-        self.last_rgb_img = numpify(msg)
-        #cv2.imshow('RGB Image', self.last_rgb_img)
-        #cv2.waitKey(3)
 
     def __pc_callback(self, msg):
         # Callback for point cloud topic
@@ -93,8 +82,8 @@ class LandingDetector:
         w = self.DRONE_WIDTH
         h = self.DRONE_HEIGHT
         # Step size for boxes
-        dx = w/8
-        dy = h/8
+        dx = w/4
+        dy = h/4
         # Save filter sizes
         self.box_filter = []
         # Num steps are based on area of current PC (which is dependent on altitude)

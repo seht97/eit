@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="pointcloud_topic"        default="/pcl"/>
-    <arg name="rgb_topic"               default="/rgb/data"/>
     <arg name="toggle_detection_topic"  default="/landing_detector/toggle_detection"/>
     <arg name="drone_width"             default="1.0"/>
     <arg name="drone_height"            default="1.0"/>
@@ -9,7 +8,6 @@
     <!-- Launch Landing Detector -->
     <node name="landing_detector" pkg="eit" type="landing_detector.py" output="screen" >
         <param name="pointcloud_topic"          value="$(arg pointcloud_topic)"/>
-        <param name="rgb_topic"                 value="$(arg rgb_topic)"/>
         <param name="toggle_detection_topic"    value="$(arg toggle_detection_topic)"/>
         <param name="drone_width"               value="$(arg drone_width)"/>
         <param name="drone_height"              value="$(arg drone_height)"/>
