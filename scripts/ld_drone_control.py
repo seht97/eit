@@ -22,7 +22,7 @@ class Drone():
         self.allowed_to_land = False
         self.home_position = PoseStamped()
         self.current_position = PoseStamped()
-        self.altitude = 15   # [m]
+        self.altitude = 5   # [m]
         self.altitude_inc = 0.5 # amount to increase altitude when first objects are detected [m]
         self.land_velocity = 1  # [m/s]
         self.land_velocity_slow = 0.5   # velocity to decrease to when first objects are detected [m/s]
@@ -115,11 +115,13 @@ class Drone():
             self.rate.sleep()
 
         rospy.loginfo("Waiting for change mode to offboard & arming rotorcraft...")
-        while not self.state.mode == "OFFBOARD" or not self.state.armed:
-            if not self.state.mode == "OFFBOARD":
-                self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
-            if not self.state.armed:
-                self.arming_client(True)
+        while not self.state.mode == "OFFBOARD":
+            #if not self.state.mode == "OFFBOARD":
+            self.set_mode_client(base_mode=0, custom_mode="OFFBOARD")
+            self.target_pos_pub.publish(self.take_off_position)
+            self.rate.sleep()
+        while not self.state.armed:
+            self.arming_client(True)
             self.target_pos_pub.publish(self.take_off_position)
             self.rate.sleep()
         rospy.loginfo("Offboard mode enabled and rotorcraft armed")
@@ -146,8 +148,11 @@ class Drone():
         waypoints = []
         tp1 = PoseStamped()
         # On top of middle cylinder
-        tp1.pose.position.x = 4.01
-        tp1.pose.position.y = 24.87
+        #tp1.pose.position.x = 4.01
+        #tp1.pose.position.y = 24.87
+        #tp1.pose.position.z = self.altitude
+        tp1.pose.position.x = 0.0
+        tp1.pose.position.y = 0.0
         tp1.pose.position.z = self.altitude
         #tp1.pose.orientation.x = 0
         #tp1.pose.orientation.y = 0
