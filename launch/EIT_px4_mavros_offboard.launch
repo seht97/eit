@@ -8,6 +8,6 @@
 
    
    
-   <node name="drone_control_standby.py" pkg="eit" type="drone_control_standby.py" />
+   <node name="drone_control_standby" pkg="eit" type="drone_control_standby.py" />
    
 </launch>
