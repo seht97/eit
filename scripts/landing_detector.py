@@ -7,6 +7,10 @@ from sensor_msgs.point_cloud2 import PointCloud2
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point32
 from std_msgs.msg import Bool
+# Visulalization
+from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Point
+from std_msgs.msg import ColorRGBA, Header
 
 import numpy as np
 import pcl
@@ -18,10 +22,11 @@ class LandingDetector:
         self.__get_drone_params()
         self.__init_publishers()
         self.__init_subscribers()
-        self.run_detection = False
+        self.run_detection = True
+        self.pc = None
+        #self.start_time = rospy.Time.now()
+        #self.has_saved = False
         rospy.loginfo('Landing detector ready.')
-        #rospy.sleep(rospy.Duration(secs=5))
-        #self.detect()
 
     def __get_drone_params(self):
         # Get the drone parameters
@@ -30,11 +35,14 @@ class LandingDetector:
         if not (self.DRONE_WIDTH and self.DRONE_HEIGHT):
             rospy.logerr('Please specify the drone width and height as parameters (in launch file).')
             sys.exit(-1)
+        self.visualize = rospy.get_param('~visualize', False)
 
     def __init_publishers(self):
         # Setup publishers
         self.point_pub = rospy.Publisher('~position', Point32, queue_size=1)
         self.allow_land_pub = rospy.Publisher('~allow_land', Bool, queue_size=1)
+        if self.visualize:
+            self.vis_pub = rospy.Publisher('~visualisation', Marker, queue_size=1)
 
     def __init_subscribers(self):
         # Setup subscribers
@@ -55,16 +63,16 @@ class LandingDetector:
         # Callback for point cloud topic
         # Transform PointCloud2 to xyz-numpy array shape (N,3)
         pc = pointcloud2_to_xyz_array(msg).astype('float32')
+        pcl_pc = pcl.PointCloud(pc).make_passthrough_filter()
+        pcl_pc.set_filter_field_name("z")
+        pcl_pc.set_filter_limits(0.1, 9.0)
+        pc = pcl_pc.filter()
         
         # Only run detection if we recieve points and detection is initiated
-        if pc.size > 0:
-            pc_filtered = pcl.PointCloud(pc).make_statistical_outlier_filter()
-            pc_filtered.set_mean_k(10)
-            pc_filtered.set_std_dev_mul_thresh(1.0)
-            self.pc = pc_filtered.filter()
-            #self.pc = pcl.PointCloud(pc)
-        if self.run_detection:
-            if pc.size > 0:
+        if pc.size > 1000:
+            self.pc = pc
+        if self.run_detection and self.pc is not None:
+            if self.pc.size > 0:
                 # New PC obtained, run normal detection
                 self.detect()
             else:
@@ -79,10 +87,6 @@ class LandingDetector:
     def update_box_filter(self):
         # Create box areas for the drone to search
         # Areas are specied as: [minx, maxx, miny, maxy]
-        # Min/Max x values: 3.58
-        # Min/Max y values: 2.68
-        # Steps x: -1 - 1, -1.5 - 0.5, -2.0 - 0.0, -2.5 - -0.5, -3.0, -1.0, -3.5 - -1.5 = 6 steps
-        # Steps y: -1 - 1, -1.5 - 0.5, -2.0 - 0.0, -2.5 - -0.5 = 4 steps
         w = self.DRONE_WIDTH
         h = self.DRONE_HEIGHT
         # Step size for boxes
@@ -92,12 +96,16 @@ class LandingDetector:
         self.box_filter = []
         # Num steps are based on area of current PC (which is dependent on altitude)
         # As y is smallest FOV we base it on that
-        num_steps = int(np.max(np.asarray(self.pc)[:,1]) / dy) - 1
-        if num_steps <= 0:
-            num_steps = 1
+        #num_steps = int(np.max(np.asarray(self.pc)[:,1]) / dy) - 1
+        # Now we fix number of steps to 5, meaning 5 in each direction
+        num_steps = 5
+        #if num_steps <= 0:
+        #    num_steps = 1
+        #if num_steps > 5:
+        #    num_steps = 5
         #print(int(np.asarray(self.pc)[-1,1] / dy), num_steps)
-        print('Num steps: {}, min_x: {}, min_y: {}, min_z: {}'.format(num_steps, np.min(np.asarray(self.pc)[:,0]), np.min(np.asarray(self.pc)[:,1]), np.min(np.asarray(self.pc)[:,2])))
-        print('Num steps: {}, max_x: {}, max_y: {}, max_z: {}'.format(num_steps, np.max(np.asarray(self.pc)[:,0]), np.max(np.asarray(self.pc)[:,1]), np.max(np.asarray(self.pc)[:,2])))
+        #print('Num steps: {}, min_x: {}, min_y: {}, min_z: {}'.format(num_steps, np.min(np.asarray(self.pc)[:,0]), np.min(np.asarray(self.pc)[:,1]), np.min(np.asarray(self.pc)[:,2])))
+        #print('Num steps: {}, max_x: {}, max_y: {}, max_z: {}'.format(num_steps, np.max(np.asarray(self.pc)[:,0]), np.max(np.asarray(self.pc)[:,1]), np.max(np.asarray(self.pc)[:,2])))
         
         for i in range(num_steps):
             for yi in range(-i,i+1):
@@ -123,14 +131,14 @@ class LandingDetector:
         seg.set_model_type(pcl.SACMODEL_PLANE)
         seg.set_method_type(pcl.SAC_RANSAC)
         # Change this distance threshold to maximum distance between points on the plane (z-distance)
-        seg.set_distance_threshold(0.10)
+        seg.set_distance_threshold(0.50)
         indices, model = seg.segment()
         # Extract the plane estimated underneath the drone
         cloud_plane = self.pc.extract(indices, negative=False)
 
         # Take mean of 100 biggest distances
         z_array = np.asarray(cloud_plane)[:,2]
-        n_max = 100
+        n_max = 200
         max_sorted_z_array = z_array[np.argsort(z_array)][-n_max:]
         mean_max_dist_to_plane = np.mean(max_sorted_z_array)
         #max_dist_to_plane = np.max(np.asarray(cloud_plane)[:,2])
@@ -141,6 +149,27 @@ class LandingDetector:
         landing_loc = [0,0]
         # Update box filters
         self.update_box_filter()
+
+        # Visualization
+        if self.visualize:
+            now = rospy.Time.now()
+            header = Header(stamp=now, frame_id='camera_depth_optical_frame')
+            COLOR = ColorRGBA(r=1.0, g=0, b=0, a=1)
+            marker = Marker(header=header)
+            marker.id = 0
+            # Points
+            marker.type = Marker.POINTS
+            # Add/modify
+            marker.action = Marker.ADD
+            marker.scale.x = 0.1
+            marker.scale.y = 0.1
+            pt_array = []
+            color_array = []
+            for pt in self.box_filter:
+                pt_array.append(Point(x=(pt[0]+pt[1])/2, y=(pt[2]+pt[3])/2, z=mean_max_dist_to_plane))
+                color_array.append(COLOR)
+            marker.points = pt_array
+
         i = 0
         while not found_landing_spot and i < len(self.box_filter):
             # Filter box area around drone on plane segmentation PC
@@ -167,17 +196,31 @@ class LandingDetector:
             fil.set_filter_field_name("y")
             fil.set_filter_limits(ymin, ymax)
             full_cloud_filtered = fil.filter()
+            #if (rospy.Time.now() - self.start_time) > rospy.Duration(20) and (rospy.Time.now() - self.start_time) < rospy.Duration(22) and not self.has_saved:
+                
             # Decide wether there is an obstacle or not
             if cloud_plane_filtered.size >= full_cloud_filtered.size*0.9:
                 landing_loc[0] = (xmin + xmax)/2
                 landing_loc[1] = (ymin + ymax)/2
+                if self.visualize:
+                    color_array[i] = ColorRGBA(r=0, g=1.0, b=0, a=1)
                 found_landing_spot = True
             else:
                 i += 1
+                #if not self.has_saved:
+                #    self.has_saved = True
+                #    rospy.logwarn('Saving')
+                #    pcl.save(full_cloud_filtered, '/home/magnus/full_cloud_segment.pcd')
+                #    pcl.save(cloud_plane_filtered, '/home/magnus/cloud_plane_segment.pcd')
+
         end_time = time()
+        if self.visualize:
+            marker.colors = color_array
+            self.vis_pub.publish(marker)
         print('Elapsed time: {}'.format(end_time-start_time))
         if found_landing_spot:
             print("Landing spot found at: ({},{})".format(landing_loc[0], landing_loc[1]))
+            #print(cloud_plane_filtered.size, full_cloud_filtered.size, cloud_plane.size)
             # Publish landing spot offset point to drone control
             point = Point32(x=landing_loc[0]*0.5, y=landing_loc[1]*0.5, z=1.0)
             self.point_pub.publish(point)
