@@ -22,7 +22,7 @@ class LandingDetector:
         self.__get_drone_params()
         self.__init_publishers()
         self.__init_subscribers()
-        self.run_detection = True
+        self.run_detection = False
         self.pc = None
         #self.start_time = rospy.Time.now()
         #self.has_saved = False
@@ -69,10 +69,10 @@ class LandingDetector:
         pc = pcl_pc.filter()
         
         # Only run detection if we recieve points and detection is initiated
-        if pc.size > 1000:
-            self.pc = pc
-        if self.run_detection and self.pc is not None:
-            if self.pc.size > 0:
+        if self.run_detection:
+            if pc.size > 1000:
+                self.pc = pc
+            if self.pc is not None:
                 # New PC obtained, run normal detection
                 self.detect()
             else:
