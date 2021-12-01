@@ -1,3 +1,4 @@
 *.user
 .vscode
 __pycache__
+logs/
