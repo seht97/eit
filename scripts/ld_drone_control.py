@@ -8,6 +8,8 @@ from geometry_msgs.msg import PoseStamped, Point32
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode, CommandTOL
 from math import sqrt
+import os
+from gazebo_msgs.msg import ModelStates
 
 
 class Drone():
@@ -22,10 +24,13 @@ class Drone():
         self.allowed_to_land = False
         self.home_position = PoseStamped()
         self.current_position = PoseStamped()
-        self.altitude = 5   # [m]
+        self.altitude = 15   # [m]
         self.altitude_inc = 0.5 # amount to increase altitude when first objects are detected [m]
         self.land_velocity = 1  # [m/s]
         self.land_velocity_slow = 0.5   # velocity to decrease to when first objects are detected [m/s]
+        # Gazebo stuff
+        #self.recieved_model_poses = False
+        #self.logfile = os.path.join('logs', 'test29.txt')
         # Setup stuff
         self.__init_publishers()
         self.__init_subscribers()
@@ -43,6 +48,7 @@ class Drone():
         self.pos_sub = rospy.Subscriber("/mavros/local_position/pose", PoseStamped, self.__position_cb)
         self.landing_detector_sub = rospy.Subscriber('landing_detector/position', Point32, self.__landing_detector_cb)
         self.allowed_to_land_sub = rospy.Subscriber('landing_detector/allow_land', Bool, self.__allow_land_cb)
+        #self.gazebo_sub = rospy.Subscriber('gazebo/model_states', ModelStates, self.__gz_cb)
 
     def __init_services(self):
         # Setup services
@@ -58,6 +64,18 @@ class Drone():
         self.takeoff_client = rospy.ServiceProxy("/mavros/cmd/takeoff", CommandTOL)
 
     # Callbacks
+    def __gz_cb(self, msg):
+        if not self.recieved_model_poses:
+            with open(self.logfile, 'a') as f:
+                f.write('Model poses\n')
+                for name, pose in zip(msg.name, msg.pose):
+                    if 'cylinder' in name:
+                        x = pose.position.x
+                        y = pose.position.y
+                        f.write(f'{x},{y}\n')
+            self.recieved_model_poses = True
+            
+
     def __state_cb(self, state):
         self.state = state
 
@@ -151,7 +169,7 @@ class Drone():
         #tp1.pose.position.x = 4.01
         #tp1.pose.position.y = 24.87
         #tp1.pose.position.z = self.altitude
-        tp1.pose.position.x = 0.0
+        tp1.pose.position.x = -25.0
         tp1.pose.position.y = 0.0
         tp1.pose.position.z = self.altitude
         #tp1.pose.orientation.x = 0
@@ -162,7 +180,10 @@ class Drone():
         return waypoints
 
     def shutdown_drone(self):
-        rospy.loginfo("Landing..")
+        rospy.loginfo("Landing at ({},{})..".format(self.landing_position.pose.position.x,self.landing_position.pose.position.y))
+        #with open(self.logfile, 'a') as f:
+        #    f.write('Landing at\n')
+        #    f.write(f"{self.landing_position.pose.position.x},{self.landing_position.pose.position.y}") 
         while not self.state.mode == "AUTO.LAND":
             self.land_client()
         rospy.signal_shutdown("Done")
