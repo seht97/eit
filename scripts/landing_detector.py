@@ -131,7 +131,7 @@ class LandingDetector:
         seg.set_model_type(pcl.SACMODEL_PLANE)
         seg.set_method_type(pcl.SAC_RANSAC)
         # Change this distance threshold to maximum distance between points on the plane (z-distance)
-        seg.set_distance_threshold(0.50)
+        seg.set_distance_threshold(0.10)
         indices, model = seg.segment()
         # Extract the plane estimated underneath the drone
         cloud_plane = self.pc.extract(indices, negative=False)
