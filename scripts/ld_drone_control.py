@@ -9,7 +9,7 @@ from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode, CommandTOL
 from math import sqrt
 import os
-from gazebo_msgs.msg import ModelStates
+#from gazebo_msgs.msg import ModelStates
 
 
 class Drone():
@@ -24,7 +24,7 @@ class Drone():
         self.allowed_to_land = False
         self.home_position = PoseStamped()
         self.current_position = PoseStamped()
-        self.altitude = 15   # [m]
+        self.altitude = 5   # [m]
         self.altitude_inc = 0.5 # amount to increase altitude when first objects are detected [m]
         self.land_velocity = 1  # [m/s]
         self.land_velocity_slow = 0.5   # velocity to decrease to when first objects are detected [m/s]
@@ -74,6 +74,11 @@ class Drone():
                         y = pose.position.y
                         f.write(f'{x},{y}\n')
             self.recieved_model_poses = True
+        else:
+            for name, pose in zip(msg.name, msg.pose):
+                if 'aed' in name:
+                    self.gt_position = pose.position
+            
             
 
     def __state_cb(self, state):
@@ -98,7 +103,7 @@ class Drone():
         # (meaning that it recieves point cloud values)
         if pos_msg.z != 0 and not self.received_data_from_landing_detector:
             rospy.loginfo('Data recieved, increasing altitude by {}m and decreasing landing velocity to {}m/s'.format(self.altitude_inc, self.land_velocity_slow))
-            self.land_velocity = 0.5
+            self.land_velocity = self.land_velocity_slow
             self.landing_position.pose.position.z = self.current_position.pose.position.z + 0.5
             self.received_data_from_landing_detector = True
         # If no obstacles underneath, descend slowly
@@ -181,11 +186,12 @@ class Drone():
 
     def shutdown_drone(self):
         rospy.loginfo("Landing at ({},{})..".format(self.landing_position.pose.position.x,self.landing_position.pose.position.y))
-        #with open(self.logfile, 'a') as f:
-        #    f.write('Landing at\n')
-        #    f.write(f"{self.landing_position.pose.position.x},{self.landing_position.pose.position.y}") 
         while not self.state.mode == "AUTO.LAND":
             self.land_client()
+        #rospy.sleep(10)
+        #with open(self.logfile, 'a') as f:
+        #    f.write(f"{self.gt_position.x},{self.gt_position.y}\n")
+        #    f.write('Last line is landing position.')
         rospy.signal_shutdown("Done")
 
     def fly_route(self):
