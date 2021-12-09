@@ -322,6 +322,7 @@ if __name__ == '__main__':
     rospy.init_node('drone_control', anonymous=True)
     drone = Drone()
     drone.flyRoute()
+    drone.landing_detector()
     #drone.shutdownDrone()
     rospy.spin()
 
