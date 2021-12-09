@@ -2,9 +2,9 @@
 
 import rospy
 import mavros
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Bool
 from sensor_msgs.msg import NavSatFix
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point32
 from geographic_msgs.msg import GeoPoseStamped
 from mavros_msgs.msg import State, Altitude
 from mavros_msgs.srv import CommandBool, SetMode, CommandTOL
